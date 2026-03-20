@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { LayoutGrid, List as ListIcon, SlidersHorizontal, Loader2 } from 'lucide-react'
+import { LayoutGrid, List as ListIcon, SlidersHorizontal, Loader2, Search } from 'lucide-react'
 
 import { useProducts } from '@/hooks/useProducts'
 import { ProductCard } from '@/components/ProductCard'
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { HeroCarousel } from '@/components/HeroCarousel'
 
 export default function Index() {
   const [searchParams] = useSearchParams()
@@ -60,47 +61,7 @@ export default function Index() {
 
   return (
     <div className="flex-1 w-full pb-16">
-      {showHero && (
-        <section className="relative w-full bg-secondary text-white overflow-hidden mb-12 border-b-4 border-primary">
-          <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/90 to-secondary/40 z-10" />
-          <img
-            src="https://img.usecurling.com/p/1600/600?q=industrial%20factory&color=black"
-            alt="Hero Background"
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
-          />
-          <div className="container mx-auto px-4 md:px-6 relative z-20 py-20 md:py-28 lg:py-36">
-            <div className="max-w-2xl space-y-6 animate-fade-in-up">
-              <span className="inline-block py-1 px-3 rounded-sm bg-primary/20 text-primary font-bold text-xs tracking-widest uppercase border border-primary/30">
-                Excelência Industrial
-              </span>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-white">
-                Alta Performance em <span className="text-primary">Mangueiras</span> e Conexões
-              </h1>
-              <p className="text-lg md:text-xl text-slate-300 max-w-xl leading-relaxed">
-                Soluções completas para movimentação de fluidos com máxima segurança e durabilidade.
-                Consulte o catálogo premium BRM.
-              </p>
-              <div className="pt-4 flex flex-wrap gap-4">
-                <Button
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-white px-8 h-14 text-base font-bold shadow-lg rounded-sm"
-                  asChild
-                >
-                  <a href="#produtos">Ver Catálogo</a>
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white px-8 h-14 text-base font-bold rounded-sm backdrop-blur-sm"
-                  asChild
-                >
-                  <a href="/orcamento">Solicitar Orçamento</a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {showHero && <HeroCarousel />}
 
       <div id="produtos" className="container mx-auto px-4 md:px-6 space-y-8 scroll-mt-24">
         {/* Info Section / About */}
