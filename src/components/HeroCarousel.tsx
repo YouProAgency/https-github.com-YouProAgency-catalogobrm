@@ -16,11 +16,11 @@ const banners = [
   {
     id: 1,
     tag: 'Excelência Industrial',
-    title: 'Alta Performance em',
-    highlight: 'Mangueiras',
-    titleEnd: 'e Conexões',
+    title: 'Sua máquina em',
+    highlight: 'movimento',
+    titleEnd: ', sempre!',
     description:
-      'Soluções completas para movimentação de fluidos com máxima segurança e durabilidade. Consulte o catálogo premium BRM.',
+      'Mangueiras, flexíveis e conexões para indústria, oficina e lava rápido. Produtos certos, padrão técnico e prontidão pra não deixar sua operação parar.',
     image: 'https://img.usecurling.com/p/1600/600?q=industrial%20factory&color=black',
     link: '#produtos',
     buttonText: 'Ver Catálogo',
@@ -29,12 +29,12 @@ const banners = [
   },
   {
     id: 2,
-    tag: 'Conexões Seguras',
-    title: 'Engates Rápidos',
-    highlight: 'Industriais',
-    titleEnd: '',
+    tag: 'Pronta Entrega',
+    title: 'Mangueiras',
+    highlight: 'hidráulicas',
+    titleEnd: 'com entrega rápida!',
     description:
-      'Segurança e agilidade nas conexões da sua operação. Produtos com certificação internacional de qualidade.',
+      'Linha completa de mangueiras R1 a R17, a pronta entrega. Alta pressão e durabilidade garantida para sua operação.',
     image: 'https://img.usecurling.com/p/1600/600?q=metal%20pipes%20valves&color=black',
     link: '#produtos',
     buttonText: 'Conheça a Linha',
@@ -43,12 +43,12 @@ const banners = [
   },
   {
     id: 3,
-    tag: 'Linha Pesada',
-    title: 'Mangueiras',
-    highlight: 'Hidráulicas',
-    titleEnd: 'Premium',
+    tag: 'Linha Completa',
+    title: 'Conexões e',
+    highlight: 'adaptadores',
+    titleEnd: 'para todos os sistemas',
     description:
-      'Resistência extrema para as aplicações mais exigentes do mercado. Durabilidade incomparável para seu equipamento.',
+      'Encontre conexões hidráulicas, industriais e pneumáticas. Qualidade Premium e Alta Performance para suas mangueiras.',
     image: 'https://img.usecurling.com/p/1600/600?q=heavy%20machinery&color=black',
     link: '#produtos',
     buttonText: 'Explorar Produtos',
@@ -93,7 +93,7 @@ export function HeroCarousel() {
               <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/90 to-secondary/40 z-10" />
               <img
                 src={banner.image}
-                alt={banner.title}
+                alt={`${banner.title} ${banner.highlight} ${banner.titleEnd}`}
                 className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
               />
               <div className="container mx-auto px-4 md:px-6 relative z-20 py-20 md:py-28 lg:py-36 min-h-[480px] lg:min-h-[560px] flex flex-col justify-center">
