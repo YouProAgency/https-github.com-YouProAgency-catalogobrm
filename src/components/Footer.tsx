@@ -1,48 +1,83 @@
 import { Link } from 'react-router-dom'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, MapPin, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function Footer() {
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
   return (
-    <footer className="bg-white border-t border-slate-200 mt-auto py-8">
+    <footer
+      id="contato"
+      className="bg-secondary text-secondary-foreground border-t-4 border-primary mt-auto pt-16 pb-6"
+    >
       <div className="container px-4 md:px-6 mx-auto">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col items-center md:items-start">
-            <span className="font-bold text-lg text-slate-900 tracking-tight">Catálogo BRM</span>
-            <p className="text-sm text-muted-foreground mt-1 text-center md:text-left">
-              Soluções completas para ambientes corporativos de alta performance.
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 items-start mb-12">
+          <div className="flex flex-col items-start space-y-4">
+            <img
+              src="https://img.usecurling.com/i?q=brm&shape=fill&color=white"
+              alt="BRM Logo"
+              className="h-14 w-auto opacity-90"
+            />
+            <p className="text-sm text-slate-400 mt-2 max-w-sm leading-relaxed">
+              Especialistas em fornecer mangueiras industriais, conexões e engates rápidos de alta
+              performance. Garantimos a continuidade da sua operação com produtos certificados.
             </p>
           </div>
 
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-primary transition-colors">
-              Produtos
-            </Link>
-            <Link to="/orcamento" className="hover:text-primary transition-colors">
-              Orçamentos
-            </Link>
-            <a href="#" className="hover:text-primary transition-colors">
-              Contato
-            </a>
+          <div className="flex flex-col space-y-4">
+            <h4 className="font-bold text-lg text-white uppercase tracking-wider">Fale Conosco</h4>
+            <div className="space-y-3 text-sm text-slate-400">
+              <p className="flex items-center gap-3">
+                <MapPin className="h-4 w-4 text-primary shrink-0" /> Rua Industrial, 1000 - São
+                Paulo, SP
+                <br />
+                Atendimento Nacional
+              </p>
+              <p className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-primary shrink-0" /> (11) 99999-9999 / (11) 3333-3333
+              </p>
+              <p className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-primary shrink-0" /> contato@brmangueiras.com.br
+              </p>
+            </div>
           </div>
 
+          <div className="flex flex-col space-y-4">
+            <h4 className="font-bold text-lg text-white uppercase tracking-wider">Links Rápidos</h4>
+            <div className="flex flex-col gap-3 text-sm text-slate-400 font-medium">
+              <Link to="/" className="hover:text-primary transition-colors inline-block w-max">
+                Página Inicial
+              </Link>
+              <a
+                href="/#produtos"
+                className="hover:text-primary transition-colors inline-block w-max"
+              >
+                Catálogo Completo
+              </a>
+              <Link
+                to="/orcamento"
+                className="hover:text-primary transition-colors inline-block w-max"
+              >
+                Solicitar Orçamento
+              </Link>
+              <a href="#sobre" className="hover:text-primary transition-colors inline-block w-max">
+                Termos e Condições
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 pt-6 text-xs text-slate-500">
+          <p>&copy; {new Date().getFullYear()} BRM Mangueiras. Todos os direitos reservados.</p>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={scrollToTop}
-            className="rounded-full shadow-subtle hover:shadow-elevation transition-all"
+            className="rounded-full hover:bg-slate-800 hover:text-white transition-colors"
           >
             <ArrowUp className="h-4 w-4" />
             <span className="sr-only">Voltar ao topo</span>
           </Button>
-        </div>
-
-        <div className="mt-8 pt-4 border-t border-slate-100 flex justify-center text-xs text-slate-400">
-          &copy; {new Date().getFullYear()} BRM. Todos os direitos reservados.
         </div>
       </div>
     </footer>

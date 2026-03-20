@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Share2, ZoomIn, ShoppingCart, Info, TableProperties } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Share2, ShoppingCart, Info, TableProperties, Loader2 } from 'lucide-react'
 
-import { products } from '@/data/products'
+import { useProduct, useProducts } from '@/hooks/useProducts'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
@@ -19,93 +16,82 @@ export default function ProductDetails() {
   const { addToCart } = useCart()
   const { toast } = useToast()
 
-  const product = products.find((p) => p.id === id)
-  const [mainImage, setMainImage] = useState(product?.images[0] || '')
+  const { product, loading } = useProduct(id)
+  const { products: allProducts } = useProducts()
+
+  const [mainImage, setMainImage] = useState('')
 
   useEffect(() => {
     if (product) {
-      setMainImage(product.images[0])
+      setMainImage(product.images[0] || 'https://img.usecurling.com/p/800/800?q=placeholder')
       window.scrollTo(0, 0)
     }
   }, [product])
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   if (!product) {
     return (
-      <div className="py-20 text-center">
-        <h2 className="text-2xl font-bold text-slate-800">Produto não encontrado</h2>
-        <Button onClick={() => navigate('/')} className="mt-6">
-          Voltar ao Catálogo
+      <div className="py-20 text-center container mx-auto">
+        <h2 className="text-2xl font-bold text-secondary">Produto não encontrado no catálogo</h2>
+        <Button onClick={() => navigate('/')} className="mt-6 rounded-sm font-bold">
+          Voltar ao Início
         </Button>
       </div>
     )
   }
 
-  const relatedProducts = products
+  const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4)
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
-    toast({
-      title: 'Link copiado!',
-      description: 'O link do produto foi copiado para a área de transferência.',
-    })
+    toast({ title: 'Link copiado!', description: 'O link do produto foi copiado com sucesso.' })
   }
 
   return (
-    <div className="space-y-8 pb-20 md:pb-10">
-      {/* Breadcrumb / Actions */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          className="text-slate-500 hover:text-slate-900 -ml-4"
-          onClick={() => navigate(-1)}
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 md:px-6 py-8 space-y-10 pb-28 md:pb-12">
+      <Button
+        variant="ghost"
+        onClick={() => navigate(-1)}
+        className="-ml-4 text-muted-foreground font-bold hover:bg-muted"
+      >
+        <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+      </Button>
 
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12 bg-white p-6 md:p-8 rounded-2xl shadow-subtle border border-slate-100">
-        {/* Gallery */}
+      <div className="grid md:grid-cols-2 gap-8 lg:gap-16 bg-white p-6 md:p-10 rounded-sm shadow-sm border border-border">
+        {/* Images */}
         <div className="space-y-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <div className="relative aspect-square rounded-xl border border-slate-200 overflow-hidden bg-slate-50 cursor-zoom-in group">
-                <img
-                  src={mainImage}
-                  alt={product.name}
-                  className="w-full h-full object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ZoomIn className="h-5 w-5" />
-                </div>
-              </div>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl border-none bg-transparent shadow-none">
-              <img
-                src={mainImage}
-                alt={product.name}
-                className="w-full h-auto rounded-lg object-contain bg-white p-4"
-              />
-            </DialogContent>
-          </Dialog>
-
+          <div className="aspect-square rounded-sm border border-border overflow-hidden bg-muted/20 flex items-center justify-center p-6">
+            <img
+              src={mainImage}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain mix-blend-multiply drop-shadow-sm"
+            />
+          </div>
           {product.images.length > 1 && (
-            <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setMainImage(img)}
-                  className={`relative w-20 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`w-20 h-20 shrink-0 rounded-sm border-2 overflow-hidden flex items-center justify-center p-2 transition-all ${
                     mainImage === img
                       ? 'border-primary ring-2 ring-primary/20'
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-border hover:border-muted-foreground'
                   }`}
                 >
                   <img
                     src={img}
-                    alt={`Thumbnail ${idx}`}
-                    className="w-full h-full object-cover mix-blend-multiply bg-slate-50"
+                    alt={`Miniatura ${idx}`}
+                    className="w-full h-full object-contain mix-blend-multiply bg-muted/10"
                   />
                 </button>
               ))}
@@ -113,87 +99,106 @@ export default function ProductDetails() {
           )}
         </div>
 
-        {/* Product Info */}
+        {/* Product Information */}
         <div className="flex flex-col">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-1 rounded-sm">
               {product.category}
             </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                className="h-8 w-8 rounded-full"
-                title="Compartilhar"
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleShare}
+              className="h-8 w-8 rounded-full border-border"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight mb-2">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-secondary leading-tight mb-3">
             {product.name}
           </h1>
-          <p className="text-sm text-slate-500 font-mono mb-6">SKU: {product.sku}</p>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-sm text-secondary font-mono bg-muted px-2 py-1 rounded-sm font-bold border border-border">
+              SKU: {product.sku}
+            </span>
+          </div>
 
-          <p className="text-lg text-slate-600 mb-8 leading-relaxed">{product.shortDescription}</p>
+          <p className="text-lg text-secondary/80 leading-relaxed mb-8">
+            {product.shortDescription}
+          </p>
 
-          <Separator className="my-6" />
-
-          {/* Desktop Actions */}
-          <div className="mt-auto hidden md:flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="mt-auto bg-muted/30 p-6 rounded-sm border border-border flex flex-col gap-5">
+            <p className="text-sm text-secondary font-semibold flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" /> Adicione ao orçamento para obter valores
+              comerciais.
+            </p>
             <Button
               size="lg"
-              className="flex-1 text-lg h-14 shadow-md hover:scale-[1.02] transition-transform"
+              className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white rounded-sm shadow-md font-bold transition-transform hover:-translate-y-0.5"
               onClick={() => addToCart(product)}
             >
-              <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Orçamento
+              <ShoppingCart className="mr-2 h-5 w-5" /> Incluir no Orçamento
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Tabs Data */}
-      <Tabs defaultValue="desc" className="w-full">
-        <TabsList className="w-full md:w-auto grid grid-cols-2 md:inline-flex h-12 bg-white border border-slate-200">
-          <TabsTrigger value="desc" className="text-base data-[state=active]:bg-slate-100">
-            <Info className="mr-2 h-4 w-4" /> Descrição
+      {/* Tabs */}
+      <Tabs defaultValue="specs" className="w-full">
+        <TabsList className="w-full md:w-auto h-12 bg-muted/50 rounded-sm">
+          <TabsTrigger
+            value="specs"
+            className="text-base font-bold rounded-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <TableProperties className="mr-2 h-4 w-4" /> Especificações Técnicas
           </TabsTrigger>
-          <TabsTrigger value="specs" className="text-base data-[state=active]:bg-slate-100">
-            <TableProperties className="mr-2 h-4 w-4" /> Especificações
+          <TabsTrigger
+            value="desc"
+            className="text-base font-bold rounded-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <Info className="mr-2 h-4 w-4" /> Descrição Completa
           </TabsTrigger>
         </TabsList>
-        <div className="bg-white p-6 md:p-8 rounded-xl rounded-tl-none border border-slate-200 mt-2 shadow-sm">
-          <TabsContent value="desc" className="mt-0">
-            <h3 className="text-xl font-bold mb-4 text-slate-800">Sobre o Produto</h3>
-            <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed">
-              <p>{product.longDescription}</p>
-            </div>
-          </TabsContent>
+        <div className="bg-white p-6 md:p-8 rounded-sm border border-border mt-2 shadow-sm">
           <TabsContent value="specs" className="mt-0">
-            <h3 className="text-xl font-bold mb-4 text-slate-800">Informações Técnicas</h3>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableBody>
-                  {Object.entries(product.specs).map(([key, value], idx) => (
-                    <TableRow key={key} className={idx % 2 === 0 ? 'bg-slate-50/50' : 'bg-white'}>
-                      <TableCell className="font-medium text-slate-700 w-1/3 py-4">{key}</TableCell>
-                      <TableCell className="text-slate-600 py-4">{value}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            {product.specs && Object.keys(product.specs).length > 0 ? (
+              <div className="border border-border rounded-sm overflow-hidden">
+                <Table>
+                  <TableBody>
+                    {Object.entries(product.specs).map(([key, value], idx) => (
+                      <TableRow key={key} className={idx % 2 === 0 ? 'bg-muted/20' : 'bg-white'}>
+                        <TableCell className="font-bold text-secondary w-1/3 py-4 border-r border-border">
+                          {key}
+                        </TableCell>
+                        <TableCell className="text-secondary/80 py-4 font-medium">
+                          {value as string}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground italic">
+                Especificações técnicas não cadastradas para este produto.
+              </p>
+            )}
+          </TabsContent>
+          <TabsContent value="desc" className="mt-0 prose prose-slate max-w-none text-secondary/80">
+            <p className="leading-relaxed text-lg">{product.longDescription}</p>
           </TabsContent>
         </div>
       </Tabs>
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <div className="pt-8">
-          <h3 className="text-2xl font-bold text-slate-900 mb-6">Produtos Relacionados</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="pt-10">
+          <h3 className="text-2xl font-extrabold text-secondary mb-8 uppercase tracking-tight flex items-center">
+            <span className="bg-primary w-2 h-6 mr-3 block"></span>
+            Produtos Relacionados
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -202,13 +207,13 @@ export default function ProductDetails() {
       )}
 
       {/* Mobile Floating Action Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 z-40">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-border z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <Button
           size="lg"
-          className="w-full text-base h-14 shadow-lg"
+          className="w-full text-base h-12 shadow-md bg-primary hover:bg-primary/90 text-white rounded-sm font-bold"
           onClick={() => addToCart(product)}
         >
-          <ShoppingCart className="mr-2 h-5 w-5" /> Adicionar ao Orçamento
+          <ShoppingCart className="mr-2 h-5 w-5" /> Incluir no Orçamento
         </Button>
       </div>
     </div>

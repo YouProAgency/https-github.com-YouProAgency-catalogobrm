@@ -3,22 +3,22 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
 import Header from './Header'
 import Footer from './Footer'
+import WhatsAppButton from './WhatsAppButton'
 
 export default function Layout() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-slate-50">
+      <div className="flex min-h-screen w-full bg-background font-sans">
         <AppSidebar />
-        <SidebarInset className="flex flex-col flex-1 w-full overflow-hidden bg-slate-50">
+        <SidebarInset className="flex flex-col flex-1 w-full overflow-hidden bg-background">
           <Header />
-          <main className="flex-1 overflow-y-auto animate-fade-in">
-            <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl">
-              <Outlet />
-            </div>
+          <main className="flex-1 overflow-x-hidden flex flex-col animate-fade-in">
+            <Outlet />
           </main>
           <Footer />
         </SidebarInset>
       </div>
+      <WhatsAppButton />
     </SidebarProvider>
   )
 }

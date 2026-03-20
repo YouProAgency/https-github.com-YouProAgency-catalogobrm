@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Layers, Package, Zap } from 'lucide-react'
+import { Wrench, Package, Zap } from 'lucide-react'
 
 import {
   Sidebar,
@@ -27,31 +27,33 @@ export function AppSidebar() {
   const location = useLocation()
 
   return (
-    <Sidebar className="border-r border-slate-200 bg-white">
-      <SidebarHeader className="h-16 flex items-center px-4 border-b border-slate-100">
-        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-          <Layers className="h-4 w-4" />
+    <Sidebar className="border-r border-border bg-white shadow-sm">
+      <SidebarHeader className="h-[72px] flex items-center px-4 border-b border-border bg-secondary">
+        <h2 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-white">
+          <Wrench className="h-4 w-4 text-primary" />
           Navegação
         </h2>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-bold text-muted-foreground">
+            Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname === '/' && !location.search}>
                   <Link to="/">
                     <Package />
-                    <span>Todos os Produtos</span>
+                    <span className="font-semibold">Todos os Produtos</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.search.includes('featured')}>
                   <Link to="/?featured=true">
-                    <Zap className="text-amber-500" />
-                    <span>Destaques</span>
+                    <Zap className="text-primary" />
+                    <span className="font-semibold">Destaques</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -60,22 +62,28 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Categorias</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-bold text-muted-foreground">
+            Categorias
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <Accordion type="multiple" className="w-full">
               {categories.map((category, index) => (
                 <AccordionItem value={`item-${index}`} key={category.name} className="border-none">
-                  <AccordionTrigger className="px-4 py-2 hover:bg-slate-50 hover:no-underline rounded-md text-sm font-medium text-slate-700">
+                  <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 hover:no-underline rounded-sm text-sm font-bold text-secondary">
                     {category.name}
                   </AccordionTrigger>
-                  <AccordionContent className="pb-1">
+                  <AccordionContent className="pb-2">
                     <SidebarMenuSub>
                       {category.subcategories.map((sub) => {
                         const searchStr = `?category=${encodeURIComponent(category.name)}&sub=${encodeURIComponent(sub)}`
                         const isActive = location.search === searchStr
                         return (
                           <SidebarMenuSubItem key={sub}>
-                            <SidebarMenuSubButton asChild isActive={isActive}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isActive}
+                              className="font-medium"
+                            >
                               <Link to={`/${searchStr}`}>{sub}</Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
