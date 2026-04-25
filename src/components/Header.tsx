@@ -22,26 +22,9 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-border shadow-sm flex flex-col">
-      {/* Top Contact Bar */}
-      <div className="bg-secondary text-secondary-foreground py-2 px-4 text-xs font-medium">
-        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 opacity-90">
-              <MapPin className="h-3 w-3" /> São Paulo, SP - Atendimento Nacional
-            </span>
-            <span className="hidden sm:flex items-center gap-1.5 opacity-90">
-              <Mail className="h-3 w-3" /> contato@brmangueiras.com.br
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Phone className="h-3 w-3 text-primary" /> (11) 99999-9999
-          </div>
-        </div>
-      </div>
-
+    <header className="sticky top-0 z-40 w-full bg-white shadow-sm flex flex-col">
       {/* Main Navigation */}
-      <div className="container mx-auto flex h-[72px] items-center px-4 md:px-6 gap-4">
+      <div className="container mx-auto flex h-[80px] items-center px-4 md:px-6 gap-4">
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
           <Menu className="h-5 w-5" />
           <span className="sr-only">Menu Categorias</span>
@@ -52,18 +35,10 @@ export default function Header() {
           className="flex items-center gap-2 mr-4 md:mr-8 hover:opacity-90 transition-opacity"
         >
           <img
-            src="https://img.usecurling.com/i?q=brm&shape=fill&color=red"
-            alt="BRM Logo"
-            className="h-10 w-auto object-contain"
+            src="/logo.png"
+            alt="BR Mangueiras Logo"
+            className="h-12 md:h-14 w-auto object-contain"
           />
-          <div className="hidden lg:flex flex-col ml-1">
-            <span className="font-extrabold text-xl tracking-tight uppercase text-secondary leading-none">
-              BRM
-            </span>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none mt-0.5">
-              Mangueiras
-            </span>
-          </div>
         </Link>
 
         {/* Desktop Links */}
@@ -114,6 +89,10 @@ export default function Header() {
           </Link>
         </div>
       </div>
+
+      {/* Accent lines matching the brand identity */}
+      <div className="h-1.5 w-full bg-secondary" />
+      <div className="h-1.5 w-full bg-accent" />
     </header>
   )
 }

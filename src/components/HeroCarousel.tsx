@@ -21,7 +21,7 @@ const banners = [
     titleEnd: ', sempre!',
     description:
       'Mangueiras, flexíveis e conexões para indústria, oficina e lava rápido. Produtos certos, padrão técnico e prontidão pra não deixar sua operação parar.',
-    image: 'https://img.usecurling.com/p/1600/600?q=industrial%20factory&color=black',
+    image: 'https://img.usecurling.com/p/1600/600?q=industrial%20hoses',
     link: '#produtos',
     buttonText: 'Ver Catálogo',
     secondaryLink: '/orcamento',
@@ -35,7 +35,7 @@ const banners = [
     titleEnd: 'com entrega rápida!',
     description:
       'Linha completa de mangueiras R1 a R17, a pronta entrega. Alta pressão e durabilidade garantida para sua operação.',
-    image: 'https://img.usecurling.com/p/1600/600?q=metal%20pipes%20valves&color=black',
+    image: 'https://img.usecurling.com/p/1600/600?q=hydraulic%20hoses',
     link: '#produtos',
     buttonText: 'Conheça a Linha',
     secondaryLink: '/orcamento',
@@ -49,7 +49,7 @@ const banners = [
     titleEnd: 'para todos os sistemas',
     description:
       'Encontre conexões hidráulicas, industriais e pneumáticas. Qualidade Premium e Alta Performance para suas mangueiras.',
-    image: 'https://img.usecurling.com/p/1600/600?q=heavy%20machinery&color=black',
+    image: 'https://img.usecurling.com/p/1600/600?q=hydraulic%20fittings',
     link: '#produtos',
     buttonText: 'Explorar Produtos',
     secondaryLink: '/orcamento',

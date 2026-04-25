@@ -8,76 +8,77 @@
   :root {
     /* BRM Mangueiras Identity */
     /* Primary: BRM Red */
-    --primary: 355 83% 53%;
+    --primary: 0 100% 45%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Dark Slate/Black for technical industrial look */
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary: Navy Blue */
+    --secondary: 221 100% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Accent: BRM Yellow */
+    --accent: 50 100% 50%;
+    --accent-foreground: 221 100% 16%;
 
     /* Backgrounds */
     --background: 0 0% 98%;
-    --foreground: 0 0% 12%;
+    --foreground: 221 100% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
+    --card-foreground: 221 100% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
+    --popover-foreground: 221 100% 16%;
 
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 40%;
-
-    --accent: 0 0% 94%;
-    --accent-foreground: 0 0% 12%;
+    --muted: 210 20% 90%;
+    --muted-foreground: 221 30% 40%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: 355 83% 53%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 0 100% 45%;
 
     --radius: 0.3rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 12%;
-    --sidebar-primary: 355 83% 53%;
+    --sidebar-foreground: 221 100% 16%;
+    --sidebar-primary: 0 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 94%;
-    --sidebar-accent-foreground: 0 0% 12%;
-    --sidebar-border: 0 0% 85%;
-    --sidebar-ring: 355 83% 53%;
+    --sidebar-accent: 50 100% 50%;
+    --sidebar-accent-foreground: 221 100% 16%;
+    --sidebar-border: 210 20% 90%;
+    --sidebar-ring: 0 100% 45%;
   }
 
   .dark {
-    --background: 0 0% 8%;
+    --background: 221 50% 5%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 8%;
+    --card: 221 50% 5%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 8%;
+    --popover: 221 50% 5%;
     --popover-foreground: 0 0% 98%;
-    --primary: 355 83% 53%;
+    --primary: 0 100% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 15%;
+    --secondary: 221 100% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 221 30% 15%;
+    --muted-foreground: 221 20% 65%;
+    --accent: 50 100% 50%;
+    --accent-foreground: 221 100% 16%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 355 83% 53%;
-    --sidebar-background: 0 0% 8%;
+    --border: 221 30% 15%;
+    --input: 221 30% 15%;
+    --ring: 0 100% 45%;
+    --sidebar-background: 221 50% 5%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 355 83% 53%;
+    --sidebar-primary: 0 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 355 83% 53%;
+    --sidebar-accent: 50 100% 50%;
+    --sidebar-accent-foreground: 221 100% 16%;
+    --sidebar-border: 221 30% 15%;
+    --sidebar-ring: 0 100% 45%;
   }
 }
 

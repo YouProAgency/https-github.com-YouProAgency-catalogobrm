@@ -8,15 +8,17 @@ export default function Footer() {
   return (
     <footer
       id="contato"
-      className="bg-secondary text-secondary-foreground border-t-4 border-primary mt-auto pt-16 pb-6"
+      className="bg-secondary text-secondary-foreground border-t-4 border-accent mt-auto pt-16 pb-6 relative"
     >
-      <div className="container px-4 md:px-6 mx-auto">
+      {/* Decorative accent line matching header */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
+      <div className="container px-4 md:px-6 mx-auto mt-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 items-start mb-12">
-          <div className="flex flex-col items-start space-y-4">
+          <div className="flex flex-col items-start space-y-4 bg-white/5 p-4 rounded-lg backdrop-blur-sm border border-white/10">
             <img
-              src="https://img.usecurling.com/i?q=brm&shape=fill&color=white"
-              alt="BRM Logo"
-              className="h-14 w-auto opacity-90"
+              src="/logo.png"
+              alt="BR Mangueiras Logo"
+              className="h-14 w-auto drop-shadow-md bg-white px-3 py-2 rounded-sm"
             />
             <p className="text-sm text-slate-400 mt-2 max-w-sm leading-relaxed">
               Especialistas em fornecer mangueiras industriais, conexões e engates rápidos de alta
