@@ -25,19 +25,23 @@ export default function Footer() {
           </div>
 
           <div className="flex flex-col space-y-4">
-            <h4 className="font-bold text-lg text-white uppercase tracking-wider">Fale Conosco</h4>
+            <h4 className="font-bold text-lg text-white uppercase tracking-wider">
+              Contato / Whatsapp
+            </h4>
             <div className="space-y-3 text-sm text-slate-400">
-              <p className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-primary shrink-0" /> Rua Industrial, 1000 - São
-                Paulo, SP
-                <br />
-                Atendimento Nacional
+              <p className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  Av. Taboão da Serra, 1.560
+                  <br />
+                  Taboão da Serra, SP
+                </span>
               </p>
               <p className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-primary shrink-0" /> (11) 99999-9999 / (11) 3333-3333
+                <Phone className="h-4 w-4 text-primary shrink-0" /> (11) 9.4708-2171
               </p>
               <p className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-primary shrink-0" /> contato@brmangueiras.com.br
+                <Mail className="h-4 w-4 text-primary shrink-0" /> vendas@brmangueiras.com.br
               </p>
             </div>
           </div>
@@ -68,7 +72,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 pt-6 text-xs text-slate-500">
-          <p>&copy; {new Date().getFullYear()} BRM Mangueiras. Todos os direitos reservados.</p>
+          <p>&copy; 2026 Catálogo BR Mangueiras. Todos os direitos reservados.</p>
           <Button
             variant="ghost"
             size="icon"
