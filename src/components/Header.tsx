@@ -1,18 +1,25 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, ShoppingCart, Menu, UploadCloud } from 'lucide-react'
+import { Search, ShoppingCart, Menu, UploadCloud, LogOut, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/context/AuthContext'
 import { useSidebar } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
 export default function Header() {
   const { totalItems, isCartAnimating } = useCart()
+  const { isAuthenticated, user, logout } = useAuth()
   const { toggleSidebar } = useSidebar()
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,14 +62,16 @@ export default function Header() {
           <a href="/#contato" className="hover:text-primary transition-colors">
             Contato
           </a>
-          <Link
-            to="/admin/importar"
-            className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold text-muted-foreground hover:text-primary transition-colors bg-muted/60 px-2.5 py-1 rounded-sm border border-border"
-            title="Importar catálogo via planilha Excel"
-          >
-            <UploadCloud className="h-3.5 w-3.5 text-primary" />
-            <span>Importar</span>
-          </Link>
+          {isAuthenticated && (
+            <Link
+              to="/admin/importar"
+              className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold text-primary hover:bg-primary/10 transition-colors bg-primary/5 px-2.5 py-1 rounded-sm border border-primary/20"
+              title="Importar catálogo via planilha Excel"
+            >
+              <UploadCloud className="h-3.5 w-3.5 text-primary" />
+              <span>Importar Planilha</span>
+            </Link>
+          )}
         </nav>
 
         <div className="flex-1 max-w-xs hidden lg:flex items-center mx-4">
@@ -79,13 +88,31 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/admin/importar"
-            className="md:hidden flex items-center justify-center h-10 w-10 rounded-sm border border-border text-muted-foreground hover:text-primary hover:bg-muted"
-            title="Importar Catálogo"
-          >
-            <UploadCloud className="h-4 w-4" />
-          </Link>
+          {isAuthenticated && (
+            <>
+              <Link
+                to="/admin/importar"
+                className="md:hidden flex items-center justify-center h-10 w-10 rounded-sm border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                title="Importar Catálogo"
+              >
+                <UploadCloud className="h-4 w-4" />
+              </Link>
+              <div className="hidden xl:flex items-center gap-1 text-xs font-semibold text-secondary bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                <span className="max-w-[120px] truncate">{user?.name || 'Admin'}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="h-9 px-2.5 rounded-sm border-slate-300 text-slate-700 hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 text-xs font-bold gap-1.5"
+                title="Sair do modo administrador"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
+            </>
+          )}
           <Link to="/orcamento">
             <Button className="relative group bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-sm px-4 sm:px-6 h-10 shadow-sm transition-transform hover:-translate-y-0.5">
               <ShoppingCart className="h-4 w-4" />

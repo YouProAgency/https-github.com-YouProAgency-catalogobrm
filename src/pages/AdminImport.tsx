@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import {
   Upload,
@@ -13,9 +13,12 @@ import {
   AlertCircle,
   Database,
   Layers,
+  LogOut,
+  ShieldCheck,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
 import {
   Card,
   CardContent,
@@ -71,6 +74,14 @@ function normalizeHeader(val: any): string {
 }
 
 export default function AdminImport() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
   const [fileName, setFileName] = useState<string>('')
   const [fileSize, setFileSize] = useState<string>('')
   const [rawRowsCount, setRawRowsCount] = useState<number>(0)
@@ -378,9 +389,24 @@ export default function AdminImport() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded border border-border">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            <span>
+              Conectado como: <strong className="text-secondary">{user?.email || 'admin'}</strong>
+            </span>
+          </div>
           <Button variant="outline" asChild className="rounded-sm font-bold border-border">
             <Link to="/">Ver Catálogo Público</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className="rounded-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
+            title="Sair do modo administrador"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sair</span>
           </Button>
         </div>
       </div>

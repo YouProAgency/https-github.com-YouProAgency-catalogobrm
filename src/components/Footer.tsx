@@ -66,9 +66,12 @@ export default function Footer() {
               >
                 Solicitar Orçamento
               </Link>
-              <a href="#sobre" className="hover:text-primary transition-colors inline-block w-max">
-                Termos e Condições
-              </a>
+              <Link
+                to="/admin/login"
+                className="hover:text-primary transition-colors inline-block w-max text-slate-500 text-xs"
+              >
+                Área Restrita / Admin
+              </Link>
             </div>
           </div>
         </div>
