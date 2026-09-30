@@ -21,7 +21,9 @@ export interface DbProductRecord {
 export function mapPocketBaseToProduct(record: DbProductRecord): Product {
   const imageUrl = record.image ? pb.files.getURL(record as any, record.image) : ''
 
-  const price1Val = record.price1 ?? record.price ?? null
+  // Preço de venda público oficial: o campo price da coleção guarda o Preço Venda.
+  // Caso não esteja setado diretamente no campo price, usa price1 como fallback.
+  const salePrice = record.price ?? record.price1 ?? null
 
   return {
     id: record.id,
@@ -38,16 +40,13 @@ export function mapPocketBaseToProduct(record: DbProductRecord): Product {
     subcategory: '',
     brand: record.brand || '',
     unit: record.unit || '',
-    price: price1Val,
+    price: salePrice,
     price1: record.price1 ?? null,
     price2: record.price2 ?? null,
     price3: record.price3 ?? null,
     specs: {
       ...(record.brand ? { Marca: record.brand } : {}),
       ...(record.unit ? { Unidade: record.unit } : {}),
-      ...(record.price1 ? { 'Preço 1': `R$ ${record.price1.toFixed(2)}` } : {}),
-      ...(record.price2 ? { 'Preço 2': `R$ ${record.price2.toFixed(2)}` } : {}),
-      ...(record.price3 ? { 'Preço 3': `R$ ${record.price3.toFixed(2)}` } : {}),
     },
     featured: false,
   }
@@ -81,6 +80,7 @@ export interface ParsedProductRow {
   unit: string
   category: string
   brand: string
+  price: number | null // Preço Venda oficial destinado ao catálogo e consumidor final
   price1: number | null
   price2: number | null
   price3: number | null
@@ -135,13 +135,16 @@ export async function upsertProductBatch(
     await Promise.all(
       chunk.map(async (row) => {
         const cleanSku = row.sku.trim()
+        // Se price estiver definido explicitamente, usa-o. Caso contrário, usa price1 como fallback.
+        const salePrice = row.price !== undefined ? row.price : (row.price1 ?? null)
+
         const payload: Record<string, any> = {
           sku: cleanSku,
           name: row.name.trim(),
           unit: row.unit.trim(),
           category: row.category.trim(),
           brand: row.brand.trim(),
-          price: row.price1 ?? null,
+          price: salePrice,
           price1: row.price1 ?? null,
           price2: row.price2 ?? null,
           price3: row.price3 ?? null,

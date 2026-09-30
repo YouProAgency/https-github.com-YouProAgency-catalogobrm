@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/table'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ParsedProductRow, upsertProductBatch, ImportResult } from '@/services/products'
+import { formatCurrencyBRL } from '@/lib/utils'
 
 function parsePrice(val: any): number | null {
   if (val === null || val === undefined || val === '') return null
@@ -59,10 +60,22 @@ function parsePrice(val: any): number | null {
   return isNaN(num) ? null : num
 }
 
+function normalizeHeader(val: any): string {
+  if (val === null || val === undefined) return ''
+  return String(val)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+    .replace(/[^a-z0-9]/g, '')
+}
+
 export default function AdminImport() {
   const [fileName, setFileName] = useState<string>('')
   const [fileSize, setFileSize] = useState<string>('')
   const [rawRowsCount, setRawRowsCount] = useState<number>(0)
+  const [detectedMappingMode, setDetectedMappingMode] = useState<'header' | 'position'>('position')
+  const [salePriceColName, setSalePriceColName] = useState<string>('Preço 1 (Padrão)')
   const [validRows, setValidRows] = useState<ParsedProductRow[]>([])
   const [ignoredRowsCount, setIgnoredRowsCount] = useState<number>(0)
   const [isParsing, setIsParsing] = useState<boolean>(false)
@@ -105,29 +118,151 @@ export default function AdminImport() {
       const parsed: ParsedProductRow[] = []
       let ignored = 0
 
-      // The spreadsheet has NO header row: row 0 is already product data.
-      // Column index mapping (0-based):
-      // col 0: empty/ignorable
-      // col 1: SKU (code)
-      // col 2: empty
-      // col 3: unit (e.g. "MT")
-      // col 4: name/description
-      // col 5: category
-      // col 6: brand (e.g. BALFLEX, KANAFLEX, etc.)
-      // col 7: price 1
-      // col 8: price 2
-      // col 9: price 3
-      // col 10 & 11: ignorable
+      // Análise de cabeçalho resiliente:
+      // Inspeciona as primeiras 5 linhas para detectar se alguma linha contém cabeçalhos
+      // com palavras-chave típicas ("sku", "codigo", "descricao", "preco", "precovenda", etc.)
+      let headerRowIndex = -1
+      let colMap = {
+        sku: 1,
+        unit: 3,
+        name: 4,
+        category: 5,
+        brand: 6,
+        salePrice: 7, // Preço Venda público
+        price1: 7,
+        price2: 8,
+        price3: 9,
+      }
 
-      for (let i = 0; i < data.length; i++) {
+      for (let r = 0; r < Math.min(data.length, 5); r++) {
+        const row = data[r]
+        if (!Array.isArray(row)) continue
+
+        const normalizedCells = row.map(normalizeHeader)
+        const hasSku = normalizedCells.some((c) =>
+          ['sku', 'codigo', 'cod', 'codprod', 'referencia'].includes(c),
+        )
+        const hasDesc = normalizedCells.some((c) =>
+          ['descricao', 'nome', 'produto', 'desc', 'descricaoproduto'].includes(c),
+        )
+        const hasPreco = normalizedCells.some((c) => c.includes('preco') || c.includes('valor'))
+
+        if ((hasSku && hasDesc) || (hasDesc && hasPreco) || (hasSku && hasPreco)) {
+          headerRowIndex = r
+          break
+        }
+      }
+
+      let detectedSalePriceLabel = 'Preço 1 / Coluna 8'
+
+      if (headerRowIndex !== -1) {
+        setDetectedMappingMode('header')
+        const headerRow = data[headerRowIndex]
+        const normHeader = headerRow.map(normalizeHeader)
+
+        // Localiza colunas por nome
+        const skuIdx = normHeader.findIndex((c) =>
+          ['sku', 'codigo', 'cod', 'codprod', 'referencia', 'item'].includes(c),
+        )
+        const nameIdx = normHeader.findIndex((c) =>
+          ['descricao', 'nome', 'descricaoproduto', 'produto', 'desc', 'denominacao'].includes(c),
+        )
+        const unitIdx = normHeader.findIndex((c) =>
+          ['unidade', 'unid', 'un', 'und', 'u'].includes(c),
+        )
+        const catIdx = normHeader.findIndex((c) =>
+          ['categoria', 'grupo', 'familiadeproduto', 'familia', 'depto'].includes(c),
+        )
+        const brandIdx = normHeader.findIndex((c) =>
+          ['marca', 'fabricante', 'brand', 'fornecedor'].includes(c),
+        )
+
+        // Identifica coluna "Preço Venda" explicitamente
+        let saleIdx = normHeader.findIndex(
+          (c) =>
+            c === 'precovenda' ||
+            c === 'precovend' ||
+            c === 'prvenda' ||
+            c === 'valorvenda' ||
+            c === 'venda' ||
+            (c.includes('preco') && c.includes('venda')) ||
+            (c.includes('valor') && c.includes('venda')),
+        )
+
+        // Encontra todas as colunas que contenham "preco" ou "valor" ou "pr"
+        const allPriceIndices: number[] = []
+        normHeader.forEach((c, idx) => {
+          if (
+            c.includes('preco') ||
+            c.includes('valor') ||
+            c === 'pr1' ||
+            c === 'pr2' ||
+            c === 'pr3'
+          ) {
+            allPriceIndices.push(idx)
+          }
+        })
+
+        // Se encontrou Preço Venda nomeado
+        if (saleIdx !== -1) {
+          detectedSalePriceLabel = String(headerRow[saleIdx] || 'Preço Venda')
+        } else if (allPriceIndices.length > 0) {
+          // Se não encontrou coluna com nome explícito de "venda", pega a primeira coluna de preço como venda
+          saleIdx = allPriceIndices[0]
+          detectedSalePriceLabel = String(headerRow[saleIdx] || `Preço ${saleIdx + 1}`)
+        } else {
+          saleIdx = 7
+        }
+
+        colMap = {
+          sku: skuIdx !== -1 ? skuIdx : 1,
+          name: nameIdx !== -1 ? nameIdx : 4,
+          unit: unitIdx !== -1 ? unitIdx : 3,
+          category: catIdx !== -1 ? catIdx : 5,
+          brand: brandIdx !== -1 ? brandIdx : 6,
+          salePrice: saleIdx,
+          price1: allPriceIndices[0] ?? 7,
+          price2: allPriceIndices[1] ?? 8,
+          price3: allPriceIndices[2] ?? 9,
+        }
+      } else {
+        // Sem cabeçalho detectado: mapeamento posicional validado para ADV_Produtos_Mangueiras
+        // Coluna 2 (índice 1): SKU
+        // Coluna 4 (índice 3): Unidade
+        // Coluna 5 (índice 4): Descrição
+        // Coluna 6 (índice 5): Categoria
+        // Coluna 7 (índice 6): Marca
+        // Coluna 8 (índice 7): Preço 1 -> Mapeado como Preço Venda principal
+        // Coluna 9 (índice 8): Preço 2
+        // Coluna 10 (índice 9): Preço 3
+        setDetectedMappingMode('position')
+        colMap = {
+          sku: 1,
+          unit: 3,
+          name: 4,
+          category: 5,
+          brand: 6,
+          salePrice: 7,
+          price1: 7,
+          price2: 8,
+          price3: 9,
+        }
+        detectedSalePriceLabel = 'Coluna 8 (Preço 1 / Preço Venda)'
+      }
+
+      setSalePriceColName(detectedSalePriceLabel)
+
+      const startRow = headerRowIndex !== -1 ? headerRowIndex + 1 : 0
+
+      for (let i = startRow; i < data.length; i++) {
         const row = data[i]
         if (!row || !Array.isArray(row) || row.length === 0) {
           ignored++
           continue
         }
 
-        const rawSku = row[1] !== undefined ? String(row[1]).trim() : ''
-        const rawName = row[4] !== undefined ? String(row[4]).trim() : ''
+        const rawSku = row[colMap.sku] !== undefined ? String(row[colMap.sku]).trim() : ''
+        const rawName = row[colMap.name] !== undefined ? String(row[colMap.name]).trim() : ''
 
         // Discard row if missing mandatory SKU or product Name
         if (!rawSku || !rawName) {
@@ -135,13 +270,15 @@ export default function AdminImport() {
           continue
         }
 
-        const rawUnit = row[3] !== undefined ? String(row[3]).trim() : ''
-        const rawCategory = row[5] !== undefined ? String(row[5]).trim() : ''
-        const rawBrand = row[6] !== undefined ? String(row[6]).trim() : ''
+        const rawUnit = row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
+        const rawCategory =
+          row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
+        const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
 
-        const price1 = parsePrice(row[7])
-        const price2 = parsePrice(row[8])
-        const price3 = parsePrice(row[9])
+        const salePrice = parsePrice(row[colMap.salePrice])
+        const price1 = parsePrice(row[colMap.price1])
+        const price2 = parsePrice(row[colMap.price2])
+        const price3 = parsePrice(row[colMap.price3])
 
         parsed.push({
           sku: rawSku,
@@ -149,6 +286,7 @@ export default function AdminImport() {
           unit: rawUnit,
           category: rawCategory,
           brand: rawBrand,
+          price: salePrice ?? price1, // Preço Venda gravado no campo price do PocketBase
           price1,
           price2,
           price3,
@@ -207,6 +345,8 @@ export default function AdminImport() {
     setFileName('')
     setFileSize('')
     setRawRowsCount(0)
+    setDetectedMappingMode('position')
+    setSalePriceColName('Preço 1 (Padrão)')
     setValidRows([])
     setIgnoredRowsCount(0)
     setFinalResult(null)
@@ -253,9 +393,11 @@ export default function AdminImport() {
             1. Selecionar Arquivo de Dados
           </CardTitle>
           <CardDescription>
-            A detecção automática lê a planilha sem linha de cabeçalho: código SKU na coluna 2,
-            unidade na coluna 4, descrição/nome na coluna 5, categoria na coluna 6, marca na coluna
-            7 e preços nas colunas 8, 9 e 10.
+            A detecção automática analisa a planilha: se houver linha de cabeçalho, mapeia por nomes
+            (identificando a coluna <strong>Preço Venda</strong>); se não houver, aplica o
+            mapeamento posicional comprovado (coluna 2 = SKU, coluna 4 = Unidade, coluna 5 =
+            Descrição, coluna 6 = Categoria, coluna 7 = Marca, coluna 8 = Preço Venda, colunas 9 e
+            10 = Preços 2 e 3).
           </CardDescription>
         </CardHeader>
 
@@ -303,12 +445,27 @@ export default function AdminImport() {
                 <div className="w-12 h-12 bg-primary/10 text-primary rounded flex items-center justify-center shrink-0">
                   <FileSpreadsheet className="h-6 w-6" />
                 </div>
-                <div>
+                <div className="space-y-1">
                   <h4 className="font-bold text-secondary text-base">{fileName}</h4>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>Tamanho: {fileSize}</span>
                     <span>•</span>
-                    <span>Total de linhas no arquivo: {rawRowsCount}</span>
+                    <span>Total de linhas: {rawRowsCount}</span>
+                    <span>•</span>
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] font-semibold border-primary/40 text-primary bg-primary/5"
+                    >
+                      {detectedMappingMode === 'header'
+                        ? 'Cabeçalho Identificado'
+                        : 'Mapeamento Posicional'}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] font-semibold border-emerald-500/40 text-emerald-700 bg-emerald-50"
+                    >
+                      Preço Venda: {salePriceColName}
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -356,10 +513,12 @@ export default function AdminImport() {
               <CardDescription className="mt-1">
                 Mostrando as primeiras 20 linhas de um total de{' '}
                 <strong className="text-secondary">{validRows.length}</strong> produtos válidos
-                prontos para gravação.
+                prontos para gravação. Apenas o valor da coluna{' '}
+                <strong className="text-primary font-semibold">Preço Venda</strong> será visível
+                para o consumidor final no catálogo.
                 {ignoredRowsCount > 0 && (
                   <span className="text-amber-600 block sm:inline sm:ml-2">
-                    ({ignoredRowsCount} linhas ignoradas por ausência de SKU ou Nome).
+                    ({ignoredRowsCount} linhas ignoradas por ausência de SKU ou Nome/cabeçalho).
                   </span>
                 )}
               </CardDescription>
@@ -431,6 +590,9 @@ export default function AdminImport() {
                   <TableHead className="font-bold text-xs text-secondary w-32">
                     Marca (Col 7)
                   </TableHead>
+                  <TableHead className="font-bold text-xs text-primary bg-primary/5 text-right w-28">
+                    Preço Venda (Público)
+                  </TableHead>
                   <TableHead className="font-bold text-xs text-secondary text-right w-24">
                     Preço 1
                   </TableHead>
@@ -472,14 +634,23 @@ export default function AdminImport() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs font-mono text-right font-medium">
-                      {row.price1 !== null ? `R$ ${row.price1.toFixed(2)}` : '-'}
+                    <TableCell className="text-xs font-mono text-right font-bold text-primary bg-primary/5">
+                      {row.price !== null ? (
+                        formatCurrencyBRL(row.price)
+                      ) : (
+                        <span className="text-muted-foreground italic font-sans font-normal">
+                          Consulte
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-right text-muted-foreground">
-                      {row.price2 !== null ? `R$ ${row.price2.toFixed(2)}` : '-'}
+                      {row.price1 !== null ? formatCurrencyBRL(row.price1) : '-'}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-right text-muted-foreground">
-                      {row.price3 !== null ? `R$ ${row.price3.toFixed(2)}` : '-'}
+                      {row.price2 !== null ? formatCurrencyBRL(row.price2) : '-'}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-right text-muted-foreground">
+                      {row.price3 !== null ? formatCurrencyBRL(row.price3) : '-'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -617,15 +788,20 @@ export default function AdminImport() {
             • <strong>Estrutura de colunas esperada:</strong> Col 1 (vazia/descartada), Col 2
             (SKU/Código), Col 3 (vazia), Col 4 (Unidade, ex: MT), Col 5 (Descrição do produto), Col
             6 (Categoria, ex: MANGUEIRA HIDRAULICA), Col 7 (Marca/Fabricante, ex: BALFLEX, KANAFLEX,
-            CONTINENTAL), Col 8 (Preço 1), Col 9 (Preço 2), Col 10 (Preço 3).
+            CONTINENTAL), Col 8 (Preço Venda), Col 9 (Preço 2), Col 10 (Preço 3).
+          </p>
+          <p>
+            • <strong>Exibição exclusiva de 'Preço Venda':</strong> Embora os três preços sejam
+            armazenados para controle interno, <u>apenas o Preço Venda</u> é exibido no catálogo de
+            vendas, carrinho de cotação e páginas de detalhe para os clientes.
+          </p>
+          <p>
+            • <strong>Produtos sem preço:</strong> Se a coluna de Preço Venda estiver em branco para
+            um item, o catálogo exibirá automaticamente a indicação "Consulte" ao invés de R$ 0,00.
           </p>
           <p>
             • <strong>Upsert automático:</strong> Se um produto com o mesmo SKU já estiver no banco,
             seus dados (preços, marca, categoria, etc.) serão atualizados em vez de duplicados.
-          </p>
-          <p>
-            • <strong>Fotos e descrições:</strong> Produtos recém-importados ficam com imagens e
-            descrição estendida em branco até que sejam complementados posteriormente.
           </p>
         </CardContent>
       </Card>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Product } from '@/types'
 import { useCart } from '@/context/CartContext'
+import { formatCurrencyBRL } from '@/lib/utils'
 
 interface ProductCardProps {
   product: Product
@@ -64,15 +65,19 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
         <div className="mt-auto pt-2">
-          {product.price1 || product.price ? (
+          {product.price && product.price > 0 ? (
             <div className="flex items-baseline gap-1">
-              <span className="text-xs text-muted-foreground">A partir de</span>
               <span className="text-lg font-extrabold text-secondary font-mono">
-                R$ {(product.price1 ?? product.price ?? 0).toFixed(2)}
+                {formatCurrencyBRL(product.price)}
               </span>
+              {product.unit && (
+                <span className="text-xs text-muted-foreground font-sans">/{product.unit}</span>
+              )}
             </div>
           ) : (
-            <div className="text-xs font-semibold text-primary/80 italic">Preço sob consulta</div>
+            <div className="text-xs font-semibold text-muted-foreground italic flex items-center gap-1">
+              <span>Consulte</span>
+            </div>
           )}
         </div>
         {product.shortDescription && !product.brand && (

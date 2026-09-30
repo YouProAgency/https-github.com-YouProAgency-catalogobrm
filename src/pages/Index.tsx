@@ -77,13 +77,13 @@ export default function Index() {
       if (sortBy === 'az') return a.name.localeCompare(b.name)
       if (sortBy === 'za') return b.name.localeCompare(a.name)
       if (sortBy === 'price_asc') {
-        const pa = a.price1 ?? a.price ?? Infinity
-        const pb = b.price1 ?? b.price ?? Infinity
+        const pa = a.price && a.price > 0 ? a.price : Infinity
+        const pb = b.price && b.price > 0 ? b.price : Infinity
         return pa - pb
       }
       if (sortBy === 'price_desc') {
-        const pa = a.price1 ?? a.price ?? -Infinity
-        const pb = b.price1 ?? b.price ?? -Infinity
+        const pa = a.price && a.price > 0 ? a.price : -Infinity
+        const pb = b.price && b.price > 0 ? b.price : -Infinity
         return pb - pa
       }
       return 0

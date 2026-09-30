@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
+import { formatCurrencyBRL } from '@/lib/utils'
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -136,30 +137,20 @@ export default function ProductDetails() {
 
           {/* Pricing Box if available */}
           <div className="mb-6 p-4 rounded-sm bg-muted/20 border border-border">
-            {product.price1 || product.price ? (
+            {product.price && product.price > 0 ? (
               <div className="space-y-1">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                  Preço 1 (Base)
-                </span>
-                <div className="text-2xl font-extrabold text-secondary font-mono">
-                  R$ {(product.price1 ?? product.price ?? 0).toFixed(2)}
+                <div className="text-3xl font-extrabold text-secondary font-mono">
+                  {formatCurrencyBRL(product.price)}
                   {product.unit ? (
-                    <span className="text-xs text-muted-foreground font-sans ml-1">
-                      /{product.unit}
+                    <span className="text-sm font-sans font-normal text-muted-foreground ml-1.5">
+                      / {product.unit}
                     </span>
                   ) : null}
                 </div>
-                {(product.price2 || product.price3) && (
-                  <div className="flex gap-4 pt-2 text-xs text-muted-foreground font-mono">
-                    {product.price2 ? <span>Preço 2: R$ {product.price2.toFixed(2)}</span> : null}
-                    {product.price3 ? <span>Preço 3: R$ {product.price3.toFixed(2)}</span> : null}
-                  </div>
-                )}
               </div>
             ) : (
               <div className="text-sm font-semibold text-secondary flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" /> Preço sob consulta para faturamento
-                corporativo.
+                <Info className="h-4 w-4 text-primary" /> Preço: Consulte nossa equipe para cotação.
               </div>
             )}
           </div>

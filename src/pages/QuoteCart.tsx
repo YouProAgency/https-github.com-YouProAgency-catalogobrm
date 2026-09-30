@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2, Plus, Minus, ArrowLeft, CheckCircle2, FileText, Loader2 } from 'lucide-react'
 
 import { useCart } from '@/context/CartContext'
+import { formatCurrencyBRL } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -178,9 +179,41 @@ export default function QuoteCart() {
                     <h4 className="font-bold text-secondary text-lg leading-tight mb-1">
                       {item.product.name}
                     </h4>
-                    <p className="text-xs text-primary font-mono font-bold tracking-widest mb-4">
-                      SKU: {item.product.sku}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-xs text-primary font-mono font-bold tracking-widest">
+                        SKU: {item.product.sku}
+                      </span>
+                      {item.product.brand && (
+                        <span className="text-[11px] text-muted-foreground">
+                          • Marca: {item.product.brand}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mb-4">
+                      {item.product.price && item.product.price > 0 ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-base font-extrabold text-secondary font-mono">
+                            {formatCurrencyBRL(item.product.price)}
+                          </span>
+                          {item.product.unit && (
+                            <span className="text-xs text-muted-foreground font-sans">
+                              /{item.product.unit}
+                            </span>
+                          )}
+                          {item.quantity > 1 && (
+                            <span className="text-xs font-mono text-muted-foreground">
+                              (Subtotal: {formatCurrencyBRL(item.product.price * item.quantity)})
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground italic">
+                          Preço: Consulte
+                        </span>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between sm:justify-start gap-6 mt-auto">
                       <div className="flex items-center border border-border rounded-sm bg-white shadow-sm">
                         <Button
