@@ -5,12 +5,13 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import ProductDetails from './pages/ProductDetails'
 import QuoteCart from './pages/QuoteCart'
+import AdminImport from './pages/AdminImport'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { CartProvider } from './context/CartContext'
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+  <BrowserRouter>
     <TooltipProvider>
       <CartProvider>
         <Toaster />
@@ -20,6 +21,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/produto/:id" element={<ProductDetails />} />
             <Route path="/orcamento" element={<QuoteCart />} />
+            <Route path="/admin/importar" element={<AdminImport />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

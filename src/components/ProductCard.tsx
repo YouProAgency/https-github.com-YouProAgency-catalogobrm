@@ -35,17 +35,51 @@ export function ProductCard({ product }: ProductCardProps) {
         </Link>
       </div>
       <CardContent className="p-5 flex-1 flex flex-col">
-        <div className="text-[10px] text-primary font-bold mb-1 uppercase tracking-widest">
-          {product.sku}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-[10px] text-primary font-bold uppercase tracking-widest font-mono">
+            {product.sku}
+          </span>
+          {product.brand && (
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase font-bold py-0 px-1.5 border-secondary/20 text-secondary"
+            >
+              {product.brand}
+            </Badge>
+          )}
         </div>
         <Link to={`/produto/${product.id}`} className="group-hover:text-primary transition-colors">
           <h3 className="font-extrabold text-lg leading-tight text-secondary mb-2 line-clamp-2">
             {product.name}
           </h3>
         </Link>
-        <p className="text-sm text-muted-foreground line-clamp-2 mt-auto leading-relaxed">
-          {product.shortDescription}
-        </p>
+        <div className="flex items-center gap-2 mb-2">
+          {product.category && (
+            <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-sm">
+              {product.category}
+            </span>
+          )}
+          {product.unit && (
+            <span className="text-[11px] font-mono text-muted-foreground">/ {product.unit}</span>
+          )}
+        </div>
+        <div className="mt-auto pt-2">
+          {product.price1 || product.price ? (
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs text-muted-foreground">A partir de</span>
+              <span className="text-lg font-extrabold text-secondary font-mono">
+                R$ {(product.price1 ?? product.price ?? 0).toFixed(2)}
+              </span>
+            </div>
+          ) : (
+            <div className="text-xs font-semibold text-primary/80 italic">Preço sob consulta</div>
+          )}
+        </div>
+        {product.shortDescription && !product.brand && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+            {product.shortDescription}
+          </p>
+        )}
       </CardContent>
       <CardFooter className="p-5 pt-0 flex flex-col gap-2">
         <Button

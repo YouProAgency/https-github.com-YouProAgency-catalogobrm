@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T13:45:12.409Z",
+  "generatedAt": "2026-09-30T16:09:45.998Z",
   "collections": [
     {
       "name": "users",
@@ -50,9 +50,9 @@
       "apiRules": {
         "list": "",
         "view": "",
-        "create": null,
-        "update": null,
-        "delete": null
+        "create": "",
+        "update": "",
+        "delete": ""
       },
       "fields": [
         {
@@ -104,11 +104,42 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "unit",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "brand",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price1",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price2",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price3",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_products_sku ON products (sku) WHERE sku != ''",
-        "CREATE INDEX idx_products_category ON products (category)"
+        "CREATE INDEX idx_products_category ON products (category)",
+        "CREATE INDEX `idx_products_brand` ON `products` (brand)"
       ]
     }
   ]

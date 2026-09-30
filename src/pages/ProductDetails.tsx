@@ -118,20 +118,62 @@ export default function ProductDetails() {
           <h1 className="text-3xl md:text-4xl font-extrabold text-secondary leading-tight mb-3">
             {product.name}
           </h1>
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-sm text-secondary font-mono bg-muted px-2 py-1 rounded-sm font-bold border border-border">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <span className="text-sm text-secondary font-mono bg-muted px-2.5 py-1 rounded-sm font-bold border border-border">
               SKU: {product.sku}
             </span>
+            {product.brand && (
+              <span className="text-sm font-bold text-secondary bg-secondary/10 px-2.5 py-1 rounded-sm border border-secondary/20">
+                Marca: {product.brand}
+              </span>
+            )}
+            {product.unit && (
+              <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-1 rounded-sm border border-border">
+                Unidade: {product.unit}
+              </span>
+            )}
           </div>
 
-          <p className="text-lg text-secondary/80 leading-relaxed mb-8">
-            {product.shortDescription}
-          </p>
+          {/* Pricing Box if available */}
+          <div className="mb-6 p-4 rounded-sm bg-muted/20 border border-border">
+            {product.price1 || product.price ? (
+              <div className="space-y-1">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Preço 1 (Base)
+                </span>
+                <div className="text-2xl font-extrabold text-secondary font-mono">
+                  R$ {(product.price1 ?? product.price ?? 0).toFixed(2)}
+                  {product.unit ? (
+                    <span className="text-xs text-muted-foreground font-sans ml-1">
+                      /{product.unit}
+                    </span>
+                  ) : null}
+                </div>
+                {(product.price2 || product.price3) && (
+                  <div className="flex gap-4 pt-2 text-xs text-muted-foreground font-mono">
+                    {product.price2 ? <span>Preço 2: R$ {product.price2.toFixed(2)}</span> : null}
+                    {product.price3 ? <span>Preço 3: R$ {product.price3.toFixed(2)}</span> : null}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm font-semibold text-secondary flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" /> Preço sob consulta para faturamento
+                corporativo.
+              </div>
+            )}
+          </div>
+
+          {product.shortDescription && (
+            <p className="text-base text-secondary/80 leading-relaxed mb-8">
+              {product.shortDescription}
+            </p>
+          )}
 
           <div className="mt-auto bg-muted/30 p-6 rounded-sm border border-border flex flex-col gap-5">
             <p className="text-sm text-secondary font-semibold flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" /> Adicione ao orçamento para obter valores
-              comerciais.
+              <Info className="h-4 w-4 text-primary" /> Adicione ao orçamento para receber cotação
+              formal com condições comerciais e prazos.
             </p>
             <Button
               size="lg"

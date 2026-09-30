@@ -1,6 +1,13 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { LayoutGrid, List as ListIcon, SlidersHorizontal, Loader2, Search } from 'lucide-react'
+import {
+  LayoutGrid,
+  List as ListIcon,
+  SlidersHorizontal,
+  Loader2,
+  Search,
+  Filter,
+} from 'lucide-react'
 
 import { useProducts } from '@/hooks/useProducts'
 import { ProductCard } from '@/components/ProductCard'
@@ -16,16 +23,34 @@ import {
 import { HeroCarousel } from '@/components/HeroCarousel'
 
 export default function Index() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { products, loading } = useProducts()
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('newest')
+  const [selectedBrand, setSelectedBrand] = useState('all')
 
   const query = searchParams.get('q')?.toLowerCase() || ''
   const category = searchParams.get('category')
   const subcategory = searchParams.get('sub')
   const featuredOnly = searchParams.get('featured') === 'true'
+
+  // Dynamic unique brands and categories from real loaded products
+  const availableBrands = useMemo(() => {
+    const set = new Set<string>()
+    products.forEach((p) => {
+      if (p.brand && p.brand.trim()) set.add(p.brand.trim())
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [products])
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>()
+    products.forEach((p) => {
+      if (p.category && p.category.trim()) set.add(p.category.trim())
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [products])
 
   const filteredProducts = useMemo(() => {
     let result = products
@@ -35,19 +60,35 @@ export default function Index() {
         (p) =>
           p.name.toLowerCase().includes(query) ||
           p.sku.toLowerCase().includes(query) ||
+          (p.brand && p.brand.toLowerCase().includes(query)) ||
           (p.shortDescription && p.shortDescription.toLowerCase().includes(query)),
       )
     }
-    if (category) result = result.filter((p) => p.category === category)
+    if (category) {
+      result = result.filter((p) => p.category?.toLowerCase() === category.toLowerCase())
+    }
     if (subcategory) result = result.filter((p) => p.subcategory === subcategory)
+    if (selectedBrand && selectedBrand !== 'all') {
+      result = result.filter((p) => p.brand?.toLowerCase() === selectedBrand.toLowerCase())
+    }
     if (featuredOnly) result = result.filter((p) => p.featured)
 
-    return result.sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (sortBy === 'az') return a.name.localeCompare(b.name)
       if (sortBy === 'za') return b.name.localeCompare(a.name)
+      if (sortBy === 'price_asc') {
+        const pa = a.price1 ?? a.price ?? Infinity
+        const pb = b.price1 ?? b.price ?? Infinity
+        return pa - pb
+      }
+      if (sortBy === 'price_desc') {
+        const pa = a.price1 ?? a.price ?? -Infinity
+        const pb = b.price1 ?? b.price ?? -Infinity
+        return pb - pa
+      }
       return 0
     })
-  }, [products, query, category, subcategory, featuredOnly, sortBy])
+  }, [products, query, category, subcategory, selectedBrand, featuredOnly, sortBy])
 
   const showHero = !query && !category && !featuredOnly
 
@@ -117,9 +158,28 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            {/* Brand Filter */}
+            {availableBrands.length > 0 && (
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/30">
+                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Marcas</SelectItem>
+                  {availableBrands.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Sort Filter */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-muted/30">
+              <SelectTrigger className="w-full sm:w-[160px] bg-muted/30">
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Ordenar" />
               </SelectTrigger>
@@ -127,6 +187,8 @@ export default function Index() {
                 <SelectItem value="newest">Mais Recentes</SelectItem>
                 <SelectItem value="az">Nome (A - Z)</SelectItem>
                 <SelectItem value="za">Nome (Z - A)</SelectItem>
+                <SelectItem value="price_asc">Menor Preço</SelectItem>
+                <SelectItem value="price_desc">Maior Preço</SelectItem>
               </SelectContent>
             </Select>
 
@@ -145,6 +207,49 @@ export default function Index() {
             </ToggleGroup>
           </div>
         </div>
+
+        {/* Dynamic Category Chips if available */}
+        {availableCategories.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-1">
+              Categorias:
+            </span>
+            <Button
+              variant={!category ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('category')
+                setSearchParams(next)
+              }}
+              className="rounded-full text-xs h-7 font-bold shrink-0"
+            >
+              Todas
+            </Button>
+            {availableCategories.map((cat) => {
+              const isSelected = category?.toLowerCase() === cat.toLowerCase()
+              return (
+                <Button
+                  key={cat}
+                  variant={isSelected ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams)
+                    if (isSelected) {
+                      next.delete('category')
+                    } else {
+                      next.set('category', cat)
+                    }
+                    setSearchParams(next)
+                  }}
+                  className="rounded-full text-xs h-7 font-bold shrink-0"
+                >
+                  {cat}
+                </Button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Grid */}
         {filteredProducts.length > 0 ? (

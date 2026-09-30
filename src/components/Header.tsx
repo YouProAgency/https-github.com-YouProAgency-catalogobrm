@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, ShoppingCart, Menu, Phone, Mail, MapPin } from 'lucide-react'
+import { Search, ShoppingCart, Menu, UploadCloud } from 'lucide-react'
 import { useState } from 'react'
 
 import { Input } from '@/components/ui/input'
@@ -55,6 +55,14 @@ export default function Header() {
           <a href="/#contato" className="hover:text-primary transition-colors">
             Contato
           </a>
+          <Link
+            to="/admin/importar"
+            className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold text-muted-foreground hover:text-primary transition-colors bg-muted/60 px-2.5 py-1 rounded-sm border border-border"
+            title="Importar catálogo via planilha Excel"
+          >
+            <UploadCloud className="h-3.5 w-3.5 text-primary" />
+            <span>Importar</span>
+          </Link>
         </nav>
 
         <div className="flex-1 max-w-xs hidden lg:flex items-center mx-4">
@@ -71,6 +79,13 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            to="/admin/importar"
+            className="md:hidden flex items-center justify-center h-10 w-10 rounded-sm border border-border text-muted-foreground hover:text-primary hover:bg-muted"
+            title="Importar Catálogo"
+          >
+            <UploadCloud className="h-4 w-4" />
+          </Link>
           <Link to="/orcamento">
             <Button className="relative group bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-sm px-4 sm:px-6 h-10 shadow-sm transition-transform hover:-translate-y-0.5">
               <ShoppingCart className="h-4 w-4" />

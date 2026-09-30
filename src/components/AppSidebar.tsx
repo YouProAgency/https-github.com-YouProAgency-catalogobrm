@@ -57,6 +57,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/admin/importar'}>
+                  <Link to="/admin/importar">
+                    <Wrench className="text-primary" />
+                    <span className="font-semibold">Importar Planilha</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
