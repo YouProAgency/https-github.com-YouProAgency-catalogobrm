@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#02102B" />
+      <stop offset="50%" stop-color="#051D48" />
+      <stop offset="100%" stop-color="#0A2D6E" />
+    </linearGradient>
+    <linearGradient id="redAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E50914" />
+      <stop offset="100%" stop-color="#B8000A" />
+    </linearGradient>
+    <linearGradient id="yellowAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="100%" stop-color="#FFA500" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.02" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)" />
+
+  <!-- Subtle industrial grid pattern -->
+  <g opacity="0.05" stroke="#FFFFFF" stroke-width="1">
+    <line x1="0" y1="90" x2="1200" y2="90" />
+    <line x1="0" y1="180" x2="1200" y2="180" />
+    <line x1="0" y1="270" x2="1200" y2="270" />
+    <line x1="0" y1="360" x2="1200" y2="360" />
+    <line x1="0" y1="450" x2="1200" y2="450" />
+    <line x1="0" y1="540" x2="1200" y2="540" />
+    <line x1="150" y1="0" x2="150" y2="630" />
+    <line x1="300" y1="0" x2="300" y2="630" />
+    <line x1="450" y1="0" x2="450" y2="630" />
+    <line x1="600" y1="0" x2="600" y2="630" />
+    <line x1="750" y1="0" x2="750" y2="630" />
+    <line x1="900" y1="0" x2="900" y2="630" />
+    <line x1="1050" y1="0" x2="1050" y2="630" />
+  </g>
+
+  <!-- Top Accent Stripes matching BRM Brand Header -->
+  <rect x="0" y="0" width="1200" height="8" fill="url(#redAccent)" />
+  <rect x="0" y="8" width="1200" height="8" fill="url(#yellowAccent)" />
+
+  <!-- Main Content Layout -->
+  <!-- Left Side: Brand Card & Logo -->
+  <g transform="translate(80, 80)">
+    <!-- Brand Badge / Logo Container -->
+    <rect width="360" height="110" rx="12" fill="#FFFFFF" />
+    
+    <!-- Red Chevron Symbol in Logo -->
+    <polygon points="28,25 65,25 90,55 65,85 28,85 53,55" fill="#E50914" />
+    <polygon points="72,25 95,25 112,55 95,85 72,85 89,55" fill="#FFD700" opacity="0.9" />
+
+    <!-- Wordmark -->
+    <text x="125" y="60" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#02102B" letter-spacing="-1">BR MANGUEIRAS</text>
+    <text x="126" y="80" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#64748B" letter-spacing="2">SOLUÇÕES HIDRÁULICAS</text>
+
+    <!-- Tagline / Eyebrow -->
+    <g transform="translate(0, 160)">
+      <rect width="210" height="32" rx="4" fill="#E50914" />
+      <text x="105" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="12" fill="#FFFFFF" letter-spacing="2">40 ANOS DE TRADIÇÃO</text>
+    </g>
+
+    <!-- Headline -->
+    <g transform="translate(0, 220)">
+      <text x="0" y="40" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" fill="#FFFFFF" letter-spacing="-0.5">Mangueiras, Flexíveis</text>
+      <text x="0" y="90" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" fill="#FFD700" letter-spacing="-0.5">&amp; Conexões Industriais</text>
+    </g>
+
+    <!-- Description -->
+    <g transform="translate(0, 345)">
+      <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20" fill="#CBD5E1">Linha completa R1 a R17, conexões hidráulicas e pneumáticas.</text>
+      <text x="0" y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20" fill="#CBD5E1">Pronta entrega em Taboão da Serra/SP e atendimento nacional.</text>
+    </g>
+  </g>
+
+  <!-- Right Side: Highlights Cards -->
+  <g transform="translate(740, 100)">
+    <!-- Card 1: Hidráulica -->
+    <rect x="0" y="0" width="380" height="96" rx="10" fill="url(#cardGrad)" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.5" />
+    <rect x="0" y="0" width="6" height="96" rx="3" fill="#E50914" />
+    <text x="30" y="40" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="20" fill="#FFFFFF">Mangueiras R1 a R17</text>
+    <text x="30" y="68" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="14" fill="#94A3B8">Alta e super pressão, montagem sob medida</text>
+
+    <!-- Card 2: Conexões -->
+    <rect x="0" y="116" width="380" height="96" rx="10" fill="url(#cardGrad)" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.5" />
+    <rect x="0" y="116" width="6" height="96" rx="3" fill="#FFD700" />
+    <text x="30" y="156" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="20" fill="#FFFFFF">Conexões &amp; Adaptadores</text>
+    <text x="30" y="184" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="14" fill="#94A3B8">Hidráulicas, pneumáticas e engates rápidos</text>
+
+    <!-- Card 3: Flexíveis e Oficinas -->
+    <rect x="0" y="232" width="380" height="96" rx="10" fill="url(#cardGrad)" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.5" />
+    <rect x="0" y="232" width="6" height="96" rx="3" fill="#38BDF8" />
+    <text x="30" y="272" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="20" fill="#FFFFFF">Flexíveis &amp; Crimpagem</text>
+    <text x="30" y="300" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="14" fill="#94A3B8">Ar-condicionado, direção hidráulica e freio</text>
+
+    <!-- Card 4: Contato Rápido -->
+    <rect x="0" y="348" width="380" height="88" rx="10" fill="#E50914" opacity="0.95" />
+    <text x="30" y="386" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="17" fill="#FFFFFF">WhatsApp: (11) 9.4708-2171</text>
+    <text x="30" y="412" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="13" fill="#FED7AA">vendas@brmangueiras.com.br • Taboão da Serra/SP</text>
+  </g>
+
+  <!-- Bottom Bar: URL & Security -->
+  <g transform="translate(80, 560)">
+    <line x1="0" y1="0" x2="1040" y2="0" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="1" />
+    <text x="0" y="35" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="22" fill="#FFD700" letter-spacing="0.5">brmangueiras.com.br</text>
+    <text x="1040" y="35" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="15" fill="#94A3B8">Catálogo Completo de Mangueiras &amp; Conexões</text>
+  </g>
+
+  <!-- Bottom Accent Stripe -->
+  <rect x="0" y="622" width="1200" height="8" fill="url(#yellowAccent)" />
+</svg>
