@@ -38,7 +38,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { ParsedProductRow, upsertProductBatch, ImportResult } from '@/services/products'
+import {
+  ParsedProductRow,
+  upsertProductBatch,
+  ImportResult,
+  ImportProgressStats,
+} from '@/services/products'
 import { formatCurrencyBRL } from '@/lib/utils'
 
 function parsePrice(val: any): number | null {
@@ -94,7 +99,14 @@ export default function AdminImport() {
   const [isImporting, setIsImporting] = useState<boolean>(false)
   const [progressPercent, setProgressPercent] = useState<number>(0)
   const [processedCount, setProcessedCount] = useState<number>(0)
-  const [liveStats, setLiveStats] = useState({ imported: 0, updated: 0, failed: 0 })
+  const [liveStats, setLiveStats] = useState<ImportProgressStats>({
+    imported: 0,
+    updated: 0,
+    failed: 0,
+    retrying: false,
+    retryCount: 0,
+    currentStatusText: '',
+  })
   const [finalResult, setFinalResult] = useState<ImportResult | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
 
@@ -332,7 +344,14 @@ export default function AdminImport() {
     setIsImporting(true)
     setProgressPercent(0)
     setProcessedCount(0)
-    setLiveStats({ imported: 0, updated: 0, failed: 0 })
+    setLiveStats({
+      imported: 0,
+      updated: 0,
+      failed: 0,
+      retrying: false,
+      retryCount: 0,
+      currentStatusText: 'Iniciando importação controlada...',
+    })
     setFinalResult(null)
 
     try {
@@ -574,13 +593,25 @@ export default function AdminImport() {
             <div className="p-6 bg-secondary/5 border-b border-border space-y-4">
               <div className="flex justify-between items-center text-sm font-bold text-secondary">
                 <span className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                  Gravando produtos na coleção 'products'... ({processedCount} de {validRows.length}
-                  )
+                  <RefreshCw
+                    className={`h-4 w-4 text-primary ${liveStats.retrying ? 'animate-bounce text-amber-500' : 'animate-spin'}`}
+                  />
+                  {liveStats.retrying
+                    ? 'Aguardando intervalo de rate limit para retentar lote...'
+                    : `Gravando produtos na coleção 'products'... (${processedCount} de ${validRows.length})`}
                 </span>
                 <span className="text-primary font-mono">{progressPercent}%</span>
               </div>
               <Progress value={progressPercent} className="h-3 rounded-full" />
+
+              {liveStats.currentStatusText && (
+                <p
+                  className={`text-xs ${liveStats.retrying ? 'text-amber-700 font-semibold bg-amber-50 p-2 rounded border border-amber-200' : 'text-muted-foreground'}`}
+                >
+                  {liveStats.currentStatusText}
+                </p>
+              )}
+
               <div className="grid grid-cols-3 gap-4 pt-2 text-center text-xs">
                 <div className="bg-white p-2 rounded border border-border">
                   <span className="text-muted-foreground block">Novos importados</span>
@@ -770,6 +801,17 @@ export default function AdminImport() {
               </div>
             )}
 
+            {finalResult.retriedBatchesCount && finalResult.retriedBatchesCount > 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-800 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  O mecanismo de proteção contra taxa excedente reprocessou com sucesso{' '}
+                  <strong>{finalResult.retriedBatchesCount}</strong> lote(s) que haviam atingido o
+                  limite temporário da API.
+                </span>
+              </div>
+            ) : null}
+
             <div className="p-4 bg-secondary/5 rounded-sm border border-border flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Layers className="h-5 w-5 text-primary" />
@@ -828,6 +870,11 @@ export default function AdminImport() {
           <p>
             • <strong>Upsert automático:</strong> Se um produto com o mesmo SKU já estiver no banco,
             seus dados (preços, marca, categoria, etc.) serão atualizados em vez de duplicados.
+          </p>
+          <p>
+            • <strong>Proteção de limite de requisições:</strong> A gravação opera em lotes com
+            pausa controlada e retentativa automática com backoff exponencial contra HTTP 429 ("Too
+            Many Requests"), garantindo que todas as 380+ linhas sejam persistidas sem interrupção.
           </p>
         </CardContent>
       </Card>

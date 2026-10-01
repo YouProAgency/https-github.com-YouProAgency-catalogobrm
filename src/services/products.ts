@@ -87,6 +87,15 @@ export interface ParsedProductRow {
   rawRowNumber: number
 }
 
+export interface ImportProgressStats {
+  imported: number
+  updated: number
+  failed: number
+  retrying?: boolean
+  retryCount?: number
+  currentStatusText?: string
+}
+
 export interface ImportResult {
   totalRows: number
   importedCount: number
@@ -94,15 +103,47 @@ export interface ImportResult {
   skippedCount: number
   failedCount: number
   errors: string[]
+  retriedBatchesCount?: number
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRateLimitError(err: any): boolean {
+  if (!err) return false
+  const status = err?.status || err?.statusCode || err?.response?.status
+  if (status === 429) return true
+
+  const msg = String(err?.data?.message || err?.message || err?.error || '').toLowerCase()
+  return msg.includes('too many requests') || msg.includes('rate limit') || msg.includes('429')
+}
+
+function extractRetryAfterMs(err: any, fallbackMs: number): number {
+  try {
+    const headers = err?.response?.headers || err?.headers
+    if (headers) {
+      const retryAfter =
+        typeof headers.get === 'function'
+          ? headers.get('Retry-After')
+          : headers['retry-after'] || headers['Retry-After']
+
+      if (retryAfter) {
+        const seconds = parseFloat(retryAfter)
+        if (!isNaN(seconds) && seconds > 0) {
+          return Math.ceil(seconds * 1000)
+        }
+      }
+    }
+  } catch (_) {
+    // Header indisponível ou inacessível no navegador por CORS
+  }
+  return fallbackMs
 }
 
 export async function upsertProductBatch(
   products: ParsedProductRow[],
-  onProgress?: (
-    processed: number,
-    total: number,
-    currentStats: { imported: number; updated: number; failed: number },
-  ) => void,
+  onProgress?: (processed: number, total: number, currentStats: ImportProgressStats) => void,
 ): Promise<ImportResult> {
   const result: ImportResult = {
     totalRows: products.length,
@@ -111,6 +152,7 @@ export async function upsertProductBatch(
     skippedCount: 0,
     failedCount: 0,
     errors: [],
+    retriedBatchesCount: 0,
   }
 
   // Pre-fetch existing products by SKU in memory for fast lookup
@@ -128,45 +170,110 @@ export async function upsertProductBatch(
     console.warn('Não foi possível carregar SKUs existentes em lote, buscando sob demanda:', err)
   }
 
-  const BATCH_SIZE = 10
+  // Lotes de 4 itens a cada 1.150ms:
+  // ~3.5 requisições por segundo, bem dentro da taxa limite do PocketBase (~20 requisições a cada 5 segundos)
+  const BATCH_SIZE = 4
+  const BATCH_DELAY_MS = 1150
+  const MAX_BATCH_RETRIES = 5
+
+  let totalRetriedBatches = 0
+
   for (let i = 0; i < products.length; i += BATCH_SIZE) {
     const chunk = products.slice(i, i + BATCH_SIZE)
+    let batchAttempt = 0
+    let batchSuccess = false
 
-    await Promise.all(
-      chunk.map(async (row) => {
-        const cleanSku = row.sku.trim()
-        // Se price estiver definido explicitamente, usa-o. Caso contrário, usa price1 como fallback.
-        const salePrice = row.price !== undefined ? row.price : (row.price1 ?? null)
+    while (!batchSuccess && batchAttempt <= MAX_BATCH_RETRIES) {
+      let rateLimitHitInBatch: any = null
 
-        const payload: Record<string, any> = {
-          sku: cleanSku,
-          name: row.name.trim(),
-          unit: row.unit.trim(),
-          category: row.category.trim(),
-          brand: row.brand.trim(),
-          price: salePrice,
-          price1: row.price1 ?? null,
-          price2: row.price2 ?? null,
-          price3: row.price3 ?? null,
-        }
+      const batchResults = await Promise.all(
+        chunk.map(async (row) => {
+          const cleanSku = row.sku.trim()
+          // Se price estiver definido explicitamente, usa-o. Caso contrário, usa price1 como fallback.
+          const salePrice = row.price !== undefined ? row.price : (row.price1 ?? null)
 
-        try {
-          const existingId = existingBySku.get(cleanSku)
-          if (existingId) {
-            await pb.collection('products').update(existingId, payload)
-            result.updatedCount++
-          } else {
-            const created = await pb.collection('products').create(payload)
-            existingBySku.set(cleanSku, created.id)
-            result.importedCount++
+          const payload: Record<string, any> = {
+            sku: cleanSku,
+            name: row.name.trim(),
+            unit: row.unit.trim(),
+            category: row.category.trim(),
+            brand: row.brand.trim(),
+            price: salePrice,
+            price1: row.price1 ?? null,
+            price2: row.price2 ?? null,
+            price3: row.price3 ?? null,
           }
-        } catch (err: any) {
-          result.failedCount++
-          const msg = err?.data?.message || err?.message || 'Falha desconhecida'
-          result.errors.push(`SKU ${cleanSku}: ${msg}`)
+
+          try {
+            const existingId = existingBySku.get(cleanSku)
+            if (existingId) {
+              await pb.collection('products').update(existingId, payload)
+              return { type: 'updated' as const, sku: cleanSku, id: existingId }
+            } else {
+              const created = await pb.collection('products').create(payload)
+              existingBySku.set(cleanSku, created.id)
+              return { type: 'imported' as const, sku: cleanSku, id: created.id }
+            }
+          } catch (err: any) {
+            return { type: 'error' as const, sku: cleanSku, error: err }
+          }
+        }),
+      )
+
+      // Verifica se algum item do lote sofreu rate limit (HTTP 429)
+      for (const res of batchResults) {
+        if (res.type === 'error' && isRateLimitError(res.error)) {
+          rateLimitHitInBatch = res.error
+          break
         }
-      }),
-    )
+      }
+
+      if (rateLimitHitInBatch) {
+        batchAttempt++
+        totalRetriedBatches++
+        result.retriedBatchesCount = totalRetriedBatches
+
+        if (batchAttempt <= MAX_BATCH_RETRIES) {
+          // Exponential backoff: 2s, 4s, 8s, 16s...
+          const baseBackoff = Math.pow(2, batchAttempt) * 1000
+          const delayTime = extractRetryAfterMs(rateLimitHitInBatch, baseBackoff)
+
+          const waitSeconds = Math.ceil(delayTime / 1000)
+          console.warn(
+            `[PocketBase 429] Rate limit atingido no lote ${Math.floor(i / BATCH_SIZE) + 1}. Tentativa ${batchAttempt}/${MAX_BATCH_RETRIES}. Aguardando ${waitSeconds}s antes de reprocessar...`,
+          )
+
+          if (onProgress) {
+            onProgress(i, products.length, {
+              imported: result.importedCount,
+              updated: result.updatedCount,
+              failed: result.failedCount,
+              retrying: true,
+              retryCount: batchAttempt,
+              currentStatusText: `Limite temporário de requisições detectado. Aguardando ${waitSeconds}s e repetindo lote (tentativa ${batchAttempt}/${MAX_BATCH_RETRIES})...`,
+            })
+          }
+
+          await sleep(delayTime)
+          continue // Repete o mesmo chunk sem avançar o índice
+        }
+      }
+
+      // Se não deu 429 ou esgotou retentativas, processa os resultados do lote
+      for (const res of batchResults) {
+        if (res.type === 'imported') {
+          result.importedCount++
+        } else if (res.type === 'updated') {
+          result.updatedCount++
+        } else if (res.type === 'error') {
+          result.failedCount++
+          const msg = res.error?.data?.message || res.error?.message || 'Falha desconhecida'
+          result.errors.push(`SKU ${res.sku}: ${msg}`)
+        }
+      }
+
+      batchSuccess = true
+    }
 
     const processed = Math.min(i + BATCH_SIZE, products.length)
     if (onProgress) {
@@ -174,7 +281,15 @@ export async function upsertProductBatch(
         imported: result.importedCount,
         updated: result.updatedCount,
         failed: result.failedCount,
+        retrying: false,
+        retryCount: 0,
+        currentStatusText: `Processado lote ${Math.min(processed, products.length)} de ${products.length}...`,
       })
+    }
+
+    // Pausa controlada entre lotes sucessivos para respeitar o rate limit do PocketBase
+    if (i + BATCH_SIZE < products.length) {
+      await sleep(BATCH_DELAY_MS)
     }
   }
 
