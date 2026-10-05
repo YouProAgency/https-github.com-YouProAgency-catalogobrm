@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Product } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { formatCurrencyBRL } from '@/lib/utils'
+import { getProductImage } from '@/lib/productImage'
 
 interface ProductCardProps {
   product: Product
@@ -14,10 +15,11 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
+  const displayImage = getProductImage(product)
 
   return (
     <Card className="overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300 border-border bg-white rounded-sm hover:-translate-y-1">
-      <div className="relative aspect-square overflow-hidden bg-muted/20 p-4 flex items-center justify-center">
+      <div className="relative aspect-square overflow-hidden bg-white p-4 flex items-center justify-center border-b border-border/40">
         {product.featured && (
           <Badge className="absolute top-3 left-3 z-10 bg-primary hover:bg-primary text-white font-bold tracking-widest text-[10px] rounded-sm border-none shadow-sm px-2 py-1">
             DESTAQUE
@@ -28,9 +30,9 @@ export function ProductCard({ product }: ProductCardProps) {
           className="block h-full w-full flex items-center justify-center"
         >
           <img
-            src={product.images[0] || 'https://img.usecurling.com/p/400/400?q=placeholder'}
+            src={displayImage}
             alt={product.name}
-            className="object-contain max-h-full w-full group-hover:scale-105 transition-transform duration-500 ease-in-out mix-blend-multiply drop-shadow-sm"
+            className="object-contain max-h-full max-w-full group-hover:scale-105 transition-transform duration-500 ease-in-out drop-shadow-sm"
             loading="lazy"
           />
         </Link>

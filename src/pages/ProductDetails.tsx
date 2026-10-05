@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrencyBRL } from '@/lib/utils'
+import { getProductImage, getProductImages } from '@/lib/productImage'
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -24,11 +25,10 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (product) {
-      setMainImage(product.images[0] || 'https://img.usecurling.com/p/800/800?q=placeholder')
+      setMainImage(getProductImage(product))
       window.scrollTo(0, 0)
     }
   }, [product])
-
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
@@ -70,34 +70,38 @@ export default function ProductDetails() {
       <div className="grid md:grid-cols-2 gap-8 lg:gap-16 bg-white p-6 md:p-10 rounded-sm shadow-sm border border-border">
         {/* Images */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-sm border border-border overflow-hidden bg-muted/20 flex items-center justify-center p-6">
+          <div className="aspect-square rounded-sm border border-border overflow-hidden bg-white flex items-center justify-center p-6">
             <img
-              src={mainImage}
+              src={mainImage || getProductImage(product)}
               alt={product.name}
-              className="max-w-full max-h-full object-contain mix-blend-multiply drop-shadow-sm"
+              className="max-w-full max-h-full object-contain drop-shadow-sm"
             />
           </div>
-          {product.images.length > 1 && (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setMainImage(img)}
-                  className={`w-20 h-20 shrink-0 rounded-sm border-2 overflow-hidden flex items-center justify-center p-2 transition-all ${
-                    mainImage === img
-                      ? 'border-primary ring-2 ring-primary/20'
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                >
-                  <img
-                    src={img}
-                    alt={`Miniatura ${idx}`}
-                    className="w-full h-full object-contain mix-blend-multiply bg-muted/10"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const galleryImages = getProductImages(product)
+            if (galleryImages.length <= 1) return null
+            return (
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                {galleryImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setMainImage(img)}
+                    className={`w-20 h-20 shrink-0 rounded-sm border-2 overflow-hidden flex items-center justify-center p-2 bg-white transition-all ${
+                      mainImage === img
+                        ? 'border-primary ring-2 ring-primary/20'
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Miniatura ${idx}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Product Information */}

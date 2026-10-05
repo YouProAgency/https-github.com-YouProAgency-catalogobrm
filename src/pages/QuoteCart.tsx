@@ -7,6 +7,7 @@ import { Trash2, Plus, Minus, ArrowLeft, CheckCircle2, FileText, Loader2 } from 
 
 import { useCart } from '@/context/CartContext'
 import { formatCurrencyBRL } from '@/lib/utils'
+import { getProductImage } from '@/lib/productImage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -168,11 +169,11 @@ export default function QuoteCart() {
                   key={item.product.id}
                   className="p-5 flex flex-col sm:flex-row gap-5 items-center bg-white hover:bg-muted/10 transition-colors"
                 >
-                  <div className="h-24 w-24 shrink-0 rounded-sm border border-border bg-muted/20 p-2 flex items-center justify-center">
+                  <div className="h-24 w-24 shrink-0 rounded-sm border border-border bg-white p-2 flex items-center justify-center">
                     <img
-                      src={item.product.images[0]}
+                      src={getProductImage(item.product)}
                       alt={item.product.name}
-                      className="max-h-full max-w-full object-contain mix-blend-multiply"
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                   <div className="flex-1 text-center sm:text-left w-full">
