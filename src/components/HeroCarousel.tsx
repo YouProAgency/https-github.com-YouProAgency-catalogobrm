@@ -10,6 +10,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel'
+import bannerMangueirasImg from '@/assets/fundobanner2-2d893.jpg'
 import { cn } from '@/lib/utils'
 
 const banners = [
@@ -35,11 +36,13 @@ const banners = [
     titleEnd: 'com entrega rápida!',
     description:
       'Linha completa de mangueiras R1 a R17, a pronta entrega. Alta pressão e durabilidade garantida para sua operação.',
-    image: 'https://img.usecurling.com/p/1600/600?q=hydraulic%20hoses',
+    image: bannerMangueirasImg,
     link: '#produtos',
     buttonText: 'Conheça a Linha',
     secondaryLink: '/orcamento',
     secondaryButtonText: 'Fale com Especialista',
+    imageClassName: 'object-cover object-center opacity-75',
+    overlayClassName: 'bg-gradient-to-r from-secondary/95 via-secondary/85 to-secondary/60',
   },
   {
     id: 3,
@@ -90,11 +93,20 @@ export function HeroCarousel() {
         <CarouselContent>
           {banners.map((banner) => (
             <CarouselItem key={banner.id} className="relative w-full text-white overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/90 to-secondary/40 z-10" />
+              <div
+                className={cn(
+                  'absolute inset-0 z-10',
+                  banner.overlayClassName ||
+                    'bg-gradient-to-r from-secondary via-secondary/90 to-secondary/40',
+                )}
+              />
               <img
                 src={banner.image}
                 alt={`${banner.title} ${banner.highlight} ${banner.titleEnd}`}
-                className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+                className={cn(
+                  'absolute inset-0 w-full h-full',
+                  banner.imageClassName || 'object-cover opacity-60 mix-blend-overlay',
+                )}
               />
               <div className="container mx-auto px-4 md:px-6 relative z-20 py-20 md:py-28 lg:py-36 min-h-[480px] lg:min-h-[560px] flex flex-col justify-center">
                 <div className="max-w-2xl space-y-6 animate-fade-in-up">
