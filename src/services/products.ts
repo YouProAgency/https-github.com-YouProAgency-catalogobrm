@@ -19,6 +19,45 @@ export interface DbProductRecord {
 }
 
 /**
+ * Valida e normaliza o valor da unidade de produto:
+ * - Unidades legítimas são curtas (ex.: MT, PC, UN, KG, L, CJ, CX, M).
+ * - Se a unidade informada for longa (> 6 caracteres), ou idêntica ao nome/descrição,
+ *   ou um texto que duplique o produto, ela é descartada.
+ * - Caso a unidade original seja inválida e o produto for uma mangueira vendida a metro,
+ *   deriva defensivamente para 'MT'. Se for adaptador/conexão/outros, retorna string vazia.
+ */
+export function sanitizeProductUnit(
+  unitVal?: string | null,
+  productName?: string | null,
+  description?: string | null,
+): string {
+  const cleanUnit = (unitVal || '').trim()
+  const cleanName = (productName || '').trim()
+  const cleanDesc = (description || '').trim()
+
+  // Se a unidade for idêntica ao nome ou à descrição (ignorando case), ou tiver mais de 6 caracteres
+  const isInvalidUnit =
+    !cleanUnit ||
+    cleanUnit.length > 6 ||
+    (cleanName.length > 0 && cleanUnit.toLowerCase() === cleanName.toLowerCase()) ||
+    (cleanDesc.length > 0 && cleanUnit.toLowerCase() === cleanDesc.toLowerCase()) ||
+    (cleanName.toLowerCase().startsWith(cleanUnit.toLowerCase()) && cleanUnit.length > 6)
+
+  if (isInvalidUnit) {
+    // Se for mangueira (grande maioria do catálogo da BR Mangueiras / ADV_Produtos_Mangueiras),
+    // a unidade de venda padrão é MT (metro).
+    if (cleanName.toLowerCase().includes('mangueira')) {
+      return 'MT'
+    }
+    // Conexões, adaptadores ou outros produtos sem unidade definida ficam vazios
+    return ''
+  }
+
+  // Se a unidade for válida e curta, normaliza em maiúsculas se for texto comum (ex: mt -> MT, pc -> PC, un -> UN)
+  return cleanUnit.toUpperCase()
+}
+
+/**
  * Verifica se um produto ou linha de dados é da marca "Eletrodiesel"
  * (mangueiras personalizáveis vendidas exclusivamente em loja física que não devem ir para o catálogo público).
  * A checagem é insensível a maiúsculas/minúsculas com trim.
@@ -65,6 +104,7 @@ export function mapPocketBaseToProduct(record: DbProductRecord): Product {
   // Preço de venda público oficial: o campo price da coleção guarda o Preço Venda.
   // Caso não esteja setado diretamente no campo price, usa price1 como fallback.
   const salePrice = record.price ?? record.price1 ?? null
+  const cleanUnit = sanitizeProductUnit(record.unit, record.name, record.description)
 
   return {
     id: record.id,
@@ -72,22 +112,20 @@ export function mapPocketBaseToProduct(record: DbProductRecord): Product {
     name: record.name || '',
     shortDescription:
       record.description ||
-      (record.brand
-        ? `Marca: ${record.brand}${record.unit ? ` | Unidade: ${record.unit}` : ''}`
-        : ''),
+      (record.brand ? `Marca: ${record.brand}${cleanUnit ? ` | Unidade: ${cleanUnit}` : ''}` : ''),
     longDescription: record.description || '',
     images: imageUrl ? [imageUrl] : [],
     category: record.category || 'Geral',
     subcategory: '',
     brand: record.brand || '',
-    unit: record.unit || '',
+    unit: cleanUnit,
     price: salePrice,
     price1: record.price1 ?? null,
     price2: record.price2 ?? null,
     price3: record.price3 ?? null,
     specs: {
       ...(record.brand ? { Marca: record.brand } : {}),
-      ...(record.unit ? { Unidade: record.unit } : {}),
+      ...(cleanUnit ? { Unidade: cleanUnit } : {}),
     },
     featured: false,
   }
@@ -255,10 +293,12 @@ export async function upsertProductBatch(
           // Se price estiver definido explicitamente, usa-o. Caso contrário, usa price1 como fallback.
           const salePrice = row.price !== undefined ? row.price : (row.price1 ?? null)
 
+          const normalizedUnit = sanitizeProductUnit(row.unit, row.name)
+
           const payload: Record<string, any> = {
             sku: cleanSku,
             name: row.name.trim(),
-            unit: row.unit.trim(),
+            unit: normalizedUnit,
             category: row.category.trim(),
             brand: row.brand.trim(),
             price: salePrice,

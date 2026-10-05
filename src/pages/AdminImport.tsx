@@ -46,6 +46,7 @@ import {
   IgnoredRowDetail,
   isConformeAmostra,
   isEletrodiesel,
+  sanitizeProductUnit,
 } from '@/services/products'
 import { formatCurrencyBRL } from '@/lib/utils'
 
@@ -295,7 +296,9 @@ export default function AdminImport() {
 
         const rawSku = row[colMap.sku] !== undefined ? String(row[colMap.sku]).trim() : ''
         const rawName = row[colMap.name] !== undefined ? String(row[colMap.name]).trim() : ''
-        const rawUnit = row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
+        const rawUnitCandidate =
+          row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
+        const cleanUnit = sanitizeProductUnit(rawUnitCandidate, rawName)
 
         // Discard row if missing mandatory SKU or product Name
         if (!rawSku || !rawName) {
@@ -315,7 +318,7 @@ export default function AdminImport() {
 
         // Pula produtos cuja descrição/nome/unidade contenha "conforme amostra"
         // (produtos personalizados vendidos exclusivamente em loja física)
-        if (isConformeAmostra({ name: rawName, unit: rawUnit })) {
+        if (isConformeAmostra({ name: rawName, unit: rawUnitCandidate })) {
           ignored++
           amostraCount++
           currentIgnoredDetails.push({
@@ -349,7 +352,7 @@ export default function AdminImport() {
         parsed.push({
           sku: rawSku,
           name: rawName,
-          unit: rawUnit,
+          unit: cleanUnit,
           category: rawCategory,
           brand: rawBrand,
           price: salePrice ?? price1, // Preço Venda gravado no campo price do PocketBase

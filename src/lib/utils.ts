@@ -24,3 +24,15 @@ export function formatCurrencyBRL(value?: number | null): string {
     currency: 'BRL',
   }).format(value)
 }
+
+/**
+ * Valida se uma string de unidade é válida e curta para exibição no frontend (ex.: MT, PC, UN).
+ * Rejeita strings com mais de 6 caracteres ou idênticas ao nome do produto.
+ */
+export function isValidDisplayUnit(unit?: string | null, productName?: string | null): boolean {
+  if (!unit) return false
+  const trimmed = unit.trim()
+  if (!trimmed || trimmed.length > 6) return false
+  if (productName && trimmed.toLowerCase() === productName.trim().toLowerCase()) return false
+  return true
+}

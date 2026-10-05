@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Product } from '@/types'
 import { useCart } from '@/context/CartContext'
-import { formatCurrencyBRL } from '@/lib/utils'
+import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage } from '@/lib/productImage'
 
 interface ProductCardProps {
@@ -16,6 +16,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
   const displayImage = getProductImage(product)
+  const hasValidUnit = isValidDisplayUnit(product.unit, product.name)
 
   return (
     <Card className="overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300 border-border bg-white rounded-sm hover:-translate-y-1">
@@ -62,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
               {product.category}
             </span>
           )}
-          {product.unit && (
+          {hasValidUnit && (
             <span className="text-[11px] font-mono text-muted-foreground">/ {product.unit}</span>
           )}
         </div>
@@ -72,7 +73,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <span className="text-lg font-extrabold text-secondary font-mono">
                 {formatCurrencyBRL(product.price)}
               </span>
-              {product.unit && (
+              {hasValidUnit && (
                 <span className="text-xs text-muted-foreground font-sans">/{product.unit}</span>
               )}
             </div>

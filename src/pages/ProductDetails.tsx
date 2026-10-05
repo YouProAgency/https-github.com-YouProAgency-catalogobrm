@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrencyBRL } from '@/lib/utils'
+import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage, getProductImages } from '@/lib/productImage'
 
 export default function ProductDetails() {
@@ -132,7 +132,7 @@ export default function ProductDetails() {
                 Marca: {product.brand}
               </span>
             )}
-            {product.unit && (
+            {isValidDisplayUnit(product.unit, product.name) && (
               <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-1 rounded-sm border border-border">
                 Unidade: {product.unit}
               </span>
@@ -145,7 +145,7 @@ export default function ProductDetails() {
               <div className="space-y-1">
                 <div className="text-3xl font-extrabold text-secondary font-mono">
                   {formatCurrencyBRL(product.price)}
-                  {product.unit ? (
+                  {isValidDisplayUnit(product.unit, product.name) ? (
                     <span className="text-sm font-sans font-normal text-muted-foreground ml-1.5">
                       / {product.unit}
                     </span>

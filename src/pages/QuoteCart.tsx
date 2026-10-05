@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2, Plus, Minus, ArrowLeft, CheckCircle2, FileText, Loader2 } from 'lucide-react'
 
 import { useCart } from '@/context/CartContext'
-import { formatCurrencyBRL } from '@/lib/utils'
+import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage } from '@/lib/productImage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -197,7 +197,7 @@ export default function QuoteCart() {
                           <span className="text-base font-extrabold text-secondary font-mono">
                             {formatCurrencyBRL(item.product.price)}
                           </span>
-                          {item.product.unit && (
+                          {isValidDisplayUnit(item.product.unit, item.product.name) && (
                             <span className="text-xs text-muted-foreground font-sans">
                               /{item.product.unit}
                             </span>
