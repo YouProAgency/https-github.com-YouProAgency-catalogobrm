@@ -1,8 +1,10 @@
 import balflexForzaDueImg from '@/assets/balflex-forzadue-dacbb.jpg'
+import balflexForzaUnoImg from '@/assets/balflex-forzauno-fc6a1.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
 export const BALFLEX_FORZA_DUE_IMAGE = balflexForzaDueImg
+export const BALFLEX_FORZA_UNO_IMAGE = balflexForzaUnoImg
 
 export interface ProductImageSubject {
   name?: string | null
@@ -15,28 +17,47 @@ export interface ProductImageSubject {
 }
 
 /**
+ * Checa se o produto é uma mangueira Balflex da linha Forza Uno.
+ * Regra: nome ou descrição contém "FORZA UNO" (case-insensitive e com limite de palavra).
+ * Não deve casar com "FORZA DUE".
+ */
+export function isBalflexForzaUno(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = [
+    product.name || '',
+    product.description || '',
+    product.shortDescription || '',
+    product.longDescription || '',
+  ].join(' ')
+
+  return /\bforza\s+uno\b/i.test(text)
+}
+
+/**
  * Checa se o produto é uma mangueira Balflex da linha Forza Due.
- * Regra: nome ou descrição contém "FORZA DUE" (case-insensitive).
+ * Regra: nome ou descrição contém "FORZA DUE" (case-insensitive e com limite de palavra).
+ * Não deve casar com "FORZA UNO".
  */
 export function isBalflexForzaDue(product: ProductImageSubject | null | undefined): boolean {
   if (!product) return false
 
-  const name = (product.name || '').toLowerCase()
-  const desc = (
-    product.description ||
-    product.shortDescription ||
-    product.longDescription ||
-    ''
-  ).toLowerCase()
+  const text = [
+    product.name || '',
+    product.description || '',
+    product.shortDescription || '',
+    product.longDescription || '',
+  ].join(' ')
 
-  return name.includes('forza due') || desc.includes('forza due')
+  return /\bforza\s+due\b/i.test(text)
 }
 
 /**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
- * 2. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (balflexForzaDueImg)
- * 3. Fallback: placeholder genérico de produto
+ * 2. Se for da linha Balflex Forza Uno, retorna a imagem oficial anexada (BALFLEX_FORZA_UNO_IMAGE)
+ * 3. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (BALFLEX_FORZA_DUE_IMAGE)
+ * 4. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -52,7 +73,12 @@ export function getProductImage(
     return candidate
   }
 
-  // Se for Forza Due, retorna o asset local oficial
+  // Avaliação não ambígua: Forza Uno tem prioridade/separação clara de Forza Due
+  if (isBalflexForzaUno(product)) {
+    return BALFLEX_FORZA_UNO_IMAGE
+  }
+
+  // Se for Forza Due, retorna o asset oficial
   if (isBalflexForzaDue(product)) {
     return BALFLEX_FORZA_DUE_IMAGE
   }
@@ -68,6 +94,7 @@ export function getProductImage(
 /**
  * Retorna a lista completa de imagens para a galeria de detalhes:
  * - Se tiver imagens próprias não-placeholder, retorna elas.
+ * - Se for Forza Uno, retorna [BALFLEX_FORZA_UNO_IMAGE].
  * - Se for Forza Due, retorna [BALFLEX_FORZA_DUE_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
@@ -87,6 +114,10 @@ export function getProductImages(
 
   if (product.image && !product.image.includes('placeholder')) {
     return [product.image]
+  }
+
+  if (isBalflexForzaUno(product)) {
+    return [BALFLEX_FORZA_UNO_IMAGE]
   }
 
   if (isBalflexForzaDue(product)) {
