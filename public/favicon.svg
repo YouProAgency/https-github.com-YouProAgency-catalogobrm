@@ -4,29 +4,24 @@
       <stop offset="0%" stop-color="#001844" />
       <stop offset="100%" stop-color="#0B2B68" />
     </linearGradient>
-    <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#E60000" />
-      <stop offset="100%" stop-color="#B30000" />
-    </linearGradient>
-    <linearGradient id="gradYellow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FFDD00" />
-      <stop offset="100%" stop-color="#FFB700" />
-    </linearGradient>
   </defs>
 
   <!-- Background rounded box -->
   <rect width="64" height="64" rx="14" fill="url(#gradBg)" />
 
-  <!-- Accent top/bottom stripes -->
-  <rect x="0" y="58" width="64" height="6" rx="3" fill="url(#gradYellow)" />
-  <rect x="0" y="54" width="64" height="4" fill="url(#gradRed)" />
+  <!-- Accent bottom stripes -->
+  <rect x="0" y="58" width="64" height="6" rx="3" fill="#FFDD00" />
+  <rect x="0" y="54" width="64" height="4" fill="#E60000" />
 
-  <!-- BRM Emblem / Hose Fitting Shape + Text -->
-  <g transform="translate(6, 8)">
-    <!-- Red Chevron Accent / Shield -->
-    <path d="M4 6 L14 6 L20 18 L14 30 L4 30 L10 18 Z" fill="url(#gradRed)" opacity="0.9" />
-    <!-- Monogram letters -->
-    <text x="14" y="27" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="20" fill="#FFFFFF" letter-spacing="-1">BR</text>
-    <text x="39" y="27" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="14" fill="#FFDD00">M</text>
+  <!-- Official BRM Monogram & Eletrodiesel Ray Symbol -->
+  <g transform="translate(6, 12)">
+    <!-- Letters "BR" in red -->
+    <text x="2" y="30" font-family="'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="28" fill="#E60000" letter-spacing="-1">BR</text>
+    <!-- Gear & Lightning bolt on right -->
+    <g transform="translate(40, 20)">
+      <circle cx="0" cy="0" r="10" fill="#001F5C" stroke="#FFFFFF" stroke-width="1.5" />
+      <!-- Lightning bolt in red -->
+      <polygon points="6,-14 -2,-1 1,1 -5,14 3,0 0,-1" fill="#E60000" />
+    </g>
   </g>
 </svg>

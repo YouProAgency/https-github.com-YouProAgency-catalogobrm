@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowUp, MapPin, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import brmLogo from '@/assets/logo'
 
 export default function Footer() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -15,11 +16,13 @@ export default function Footer() {
       <div className="container px-4 md:px-6 mx-auto mt-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 items-start mb-12">
           <div className="flex flex-col items-start space-y-4 bg-white/5 p-4 rounded-lg backdrop-blur-sm border border-white/10">
-            <img
-              src="/logo.png"
-              alt="BR Mangueiras Logo"
-              className="h-14 w-auto drop-shadow-md bg-white px-3 py-2 rounded-sm"
-            />
+            <div className="bg-white px-3 py-2 rounded-sm inline-flex items-center shadow-sm">
+              <img
+                src={brmLogo}
+                alt="BR Mangueiras"
+                className="h-10 sm:h-12 w-auto max-w-[240px] object-contain"
+              />
+            </div>
             <p className="text-sm text-slate-400 mt-2 max-w-sm leading-relaxed">
               Especialistas em fornecer mangueiras industriais, conexões e engates rápidos de alta
               performance. Garantimos a continuidade da sua operação com produtos certificados.

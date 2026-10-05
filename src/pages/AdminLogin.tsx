@@ -23,6 +23,7 @@ import {
   CardFooter,
 } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import brmLogo from '@/assets/logo'
 
 export default function AdminLogin() {
   const { login, isAuthenticated } = useAuth()
@@ -88,9 +89,9 @@ export default function AdminLogin() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
         <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
           <img
-            src="/logo.png"
+            src={brmLogo}
             alt="BR Mangueiras"
-            className="h-16 w-auto mx-auto object-contain drop-shadow-sm"
+            className="h-14 sm:h-16 w-auto max-w-[280px] sm:max-w-[320px] mx-auto object-contain drop-shadow-sm"
           />
         </Link>
         <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">

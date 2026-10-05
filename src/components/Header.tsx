@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { useSidebar } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import brmLogo from '@/assets/logo'
 
 export default function Header() {
   const { totalItems, isCartAnimating } = useCart()
@@ -39,12 +40,12 @@ export default function Header() {
 
         <Link
           to="/"
-          className="flex items-center gap-2 mr-4 md:mr-8 hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 mr-4 md:mr-8 hover:opacity-90 transition-opacity shrink-0"
         >
           <img
-            src="/logo.png"
-            alt="BR Mangueiras Logo"
-            className="h-12 md:h-14 w-auto object-contain"
+            src={brmLogo}
+            alt="BR Mangueiras"
+            className="h-10 sm:h-12 md:h-14 w-auto max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain"
           />
         </Link>
 
