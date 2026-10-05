@@ -41,10 +41,30 @@ export function useProduct(id: string | undefined) {
         if (dbProduct) {
           setProduct(dbProduct)
         } else {
-          setProduct(mockProducts.find((p) => p.id === id) || null)
+          // Se não encontrou no banco ou foi bloqueado pelo filtro de "conforme amostra"
+          // Não faz fallback para itens com conforme amostra
+          const mock = mockProducts.find((p) => p.id === id)
+          if (
+            mock &&
+            !mock.name.toLowerCase().includes('conforme amostra') &&
+            !mock.shortDescription?.toLowerCase().includes('conforme amostra')
+          ) {
+            setProduct(mock)
+          } else {
+            setProduct(null)
+          }
         }
       } catch (err) {
-        setProduct(mockProducts.find((p) => p.id === id) || null)
+        const mock = mockProducts.find((p) => p.id === id)
+        if (
+          mock &&
+          !mock.name.toLowerCase().includes('conforme amostra') &&
+          !mock.shortDescription?.toLowerCase().includes('conforme amostra')
+        ) {
+          setProduct(mock)
+        } else {
+          setProduct(null)
+        }
       } finally {
         setLoading(false)
       }

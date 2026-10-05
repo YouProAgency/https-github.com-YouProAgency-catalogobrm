@@ -43,6 +43,8 @@ import {
   upsertProductBatch,
   ImportResult,
   ImportProgressStats,
+  IgnoredRowDetail,
+  isConformeAmostra,
 } from '@/services/products'
 import { formatCurrencyBRL } from '@/lib/utils'
 
@@ -94,6 +96,8 @@ export default function AdminImport() {
   const [salePriceColName, setSalePriceColName] = useState<string>('Preço 1 (Padrão)')
   const [validRows, setValidRows] = useState<ParsedProductRow[]>([])
   const [ignoredRowsCount, setIgnoredRowsCount] = useState<number>(0)
+  const [conformeAmostraIgnoredCount, setConformeAmostraIgnoredCount] = useState<number>(0)
+  const [ignoredDetails, setIgnoredDetails] = useState<IgnoredRowDetail[]>([])
   const [isParsing, setIsParsing] = useState<boolean>(false)
 
   const [isImporting, setIsImporting] = useState<boolean>(false)
@@ -139,7 +143,9 @@ export default function AdminImport() {
       setRawRowsCount(data.length)
 
       const parsed: ParsedProductRow[] = []
+      const currentIgnoredDetails: IgnoredRowDetail[] = []
       let ignored = 0
+      let amostraCount = 0
 
       // Análise de cabeçalho resiliente:
       // Inspeciona as primeiras 5 linhas para detectar se alguma linha contém cabeçalhos
@@ -286,14 +292,34 @@ export default function AdminImport() {
 
         const rawSku = row[colMap.sku] !== undefined ? String(row[colMap.sku]).trim() : ''
         const rawName = row[colMap.name] !== undefined ? String(row[colMap.name]).trim() : ''
+        const rawUnit = row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
 
         // Discard row if missing mandatory SKU or product Name
         if (!rawSku || !rawName) {
           ignored++
+          currentIgnoredDetails.push({
+            rowNumber: i + 1,
+            sku: rawSku || undefined,
+            name: rawName || undefined,
+            reason: 'Ausência de SKU ou Nome/Cabeçalho descartado',
+          })
           continue
         }
 
-        const rawUnit = row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
+        // Pula produtos cuja descrição/nome/unidade contenha "conforme amostra"
+        // (produtos personalizados vendidos exclusivamente em loja física)
+        if (isConformeAmostra({ name: rawName, unit: rawUnit })) {
+          ignored++
+          amostraCount++
+          currentIgnoredDetails.push({
+            rowNumber: i + 1,
+            sku: rawSku,
+            name: rawName,
+            reason: 'Produto personalizado / Conforme amostra (venda exclusiva em loja física)',
+          })
+          continue
+        }
+
         const rawCategory =
           row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
         const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
@@ -319,6 +345,8 @@ export default function AdminImport() {
 
       setValidRows(parsed)
       setIgnoredRowsCount(ignored)
+      setConformeAmostraIgnoredCount(amostraCount)
+      setIgnoredDetails(currentIgnoredDetails)
     } catch (err: any) {
       console.error('Erro ao ler arquivo:', err)
       setParseError(
@@ -362,6 +390,7 @@ export default function AdminImport() {
       })
 
       result.skippedCount = ignoredRowsCount
+      result.ignoredDetails = ignoredDetails
       setFinalResult(result)
     } catch (err: any) {
       console.error('Erro na importação:', err)
@@ -379,6 +408,8 @@ export default function AdminImport() {
     setSalePriceColName('Preço 1 (Padrão)')
     setValidRows([])
     setIgnoredRowsCount(0)
+    setConformeAmostraIgnoredCount(0)
+    setIgnoredDetails([])
     setFinalResult(null)
     setParseError(null)
     setProgressPercent(0)
@@ -563,7 +594,11 @@ export default function AdminImport() {
                 para o consumidor final no catálogo.
                 {ignoredRowsCount > 0 && (
                   <span className="text-amber-600 block sm:inline sm:ml-2">
-                    ({ignoredRowsCount} linhas ignoradas por ausência de SKU ou Nome/cabeçalho).
+                    ({ignoredRowsCount} linhas ignoradas
+                    {conformeAmostraIgnoredCount > 0
+                      ? `, sendo ${conformeAmostraIgnoredCount} do tipo "conforme amostra"`
+                      : ''}
+                    ).
                   </span>
                 )}
               </CardDescription>
@@ -774,7 +809,11 @@ export default function AdminImport() {
                 <span className="text-3xl font-extrabold text-amber-600 font-mono">
                   {finalResult.skippedCount}
                 </span>
-                <span className="text-[10px] text-muted-foreground block mt-0.5">Sem SKU/Nome</span>
+                <span className="text-[10px] text-muted-foreground block mt-0.5">
+                  {conformeAmostraIgnoredCount > 0
+                    ? `${conformeAmostraIgnoredCount} conforme amostra`
+                    : 'Sem SKU/Nome'}
+                </span>
               </div>
               <div className="bg-muted/30 p-4 rounded-sm border border-border text-center">
                 <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">
@@ -785,6 +824,21 @@ export default function AdminImport() {
                 </span>
               </div>
             </div>
+
+            {/* Conforme Amostra & Ignored breakdown notice */}
+            {conformeAmostraIgnoredCount > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm text-amber-900">
+                <h4 className="font-bold text-sm flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  Itens personalizados "Conforme Amostra" ignorados ({conformeAmostraIgnoredCount})
+                </h4>
+                <p className="text-xs text-amber-800">
+                  {conformeAmostraIgnoredCount} produto(s) continham o termo "conforme amostra" no
+                  nome ou descrição. Conforme a regra de negócio, são itens sob encomenda vendidos
+                  apenas no balcão físico e foram automaticamente excluídos do catálogo online.
+                </p>
+              </div>
+            )}
 
             {/* Error listing if any */}
             {finalResult.errors.length > 0 && (
@@ -866,6 +920,12 @@ export default function AdminImport() {
           <p>
             • <strong>Produtos sem preço:</strong> Se a coluna de Preço Venda estiver em branco para
             um item, o catálogo exibirá automaticamente a indicação "Consulte" ao invés de R$ 0,00.
+          </p>
+          <p>
+            • <strong>Filtro de itens "Conforme Amostra":</strong> Qualquer linha cujo nome ou
+            descrição contenha o termo "conforme amostra" (em qualquer combinação de
+            maiúsculas/minúsculas) é ignorada e não é cadastrada no catálogo, pois trata-se de
+            fabricação personalizada da loja física.
           </p>
           <p>
             • <strong>Upsert automático:</strong> Se um produto com o mesmo SKU já estiver no banco,

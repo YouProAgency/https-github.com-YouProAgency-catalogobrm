@@ -18,6 +18,24 @@ export interface DbProductRecord {
   updated?: string
 }
 
+/**
+ * Verifica se um produto ou linha de dados é classificado como "conforme amostra"
+ * (item personalizado vendido somente na loja física que não deve ir para o catálogo público).
+ * A checagem é insensível a maiúsculas/minúsculas.
+ */
+export function isConformeAmostra(item: {
+  name?: string | null
+  description?: string | null
+  unit?: string | null
+}): boolean {
+  const target = 'conforme amostra'
+  const nameStr = (item.name || '').toLowerCase()
+  const descStr = (item.description || '').toLowerCase()
+  const unitStr = (item.unit || '').toLowerCase()
+
+  return nameStr.includes(target) || descStr.includes(target) || unitStr.includes(target)
+}
+
 export function mapPocketBaseToProduct(record: DbProductRecord): Product {
   const imageUrl = record.image ? pb.files.getURL(record as any, record.image) : ''
 
@@ -57,7 +75,8 @@ export async function fetchAllProducts(): Promise<Product[]> {
     const records = await pb.collection('products').getFullList<DbProductRecord>({
       sort: '-created',
     })
-    return records.map(mapPocketBaseToProduct)
+    // Filtro estrito: remove qualquer produto com 'conforme amostra' no nome, descrição ou unidade
+    return records.filter((record) => !isConformeAmostra(record)).map(mapPocketBaseToProduct)
   } catch (error) {
     console.error('Erro ao buscar produtos do PocketBase:', error)
     return []
@@ -67,6 +86,10 @@ export async function fetchAllProducts(): Promise<Product[]> {
 export async function fetchProductById(id: string): Promise<Product | null> {
   try {
     const record = await pb.collection('products').getOne<DbProductRecord>(id)
+    // Se o produto for "conforme amostra", bloqueia o acesso na página de detalhes
+    if (isConformeAmostra(record)) {
+      return null
+    }
     return mapPocketBaseToProduct(record)
   } catch (error) {
     console.error(`Erro ao buscar produto ${id} do PocketBase:`, error)
@@ -96,6 +119,13 @@ export interface ImportProgressStats {
   currentStatusText?: string
 }
 
+export interface IgnoredRowDetail {
+  rowNumber: number
+  sku?: string
+  name?: string
+  reason: string
+}
+
 export interface ImportResult {
   totalRows: number
   importedCount: number
@@ -104,6 +134,7 @@ export interface ImportResult {
   failedCount: number
   errors: string[]
   retriedBatchesCount?: number
+  ignoredDetails?: IgnoredRowDetail[]
 }
 
 function sleep(ms: number): Promise<void> {
@@ -178,8 +209,17 @@ export async function upsertProductBatch(
 
   let totalRetriedBatches = 0
 
-  for (let i = 0; i < products.length; i += BATCH_SIZE) {
-    const chunk = products.slice(i, i + BATCH_SIZE)
+  // Defensivamente filtra itens "conforme amostra" que possam ter sido passados
+  const sanitizedProducts = products.filter((row) => {
+    if (isConformeAmostra({ name: row.name, unit: row.unit })) {
+      result.skippedCount++
+      return false
+    }
+    return true
+  })
+
+  for (let i = 0; i < sanitizedProducts.length; i += BATCH_SIZE) {
+    const chunk = sanitizedProducts.slice(i, i + BATCH_SIZE)
     let batchAttempt = 0
     let batchSuccess = false
 
@@ -244,7 +284,7 @@ export async function upsertProductBatch(
           )
 
           if (onProgress) {
-            onProgress(i, products.length, {
+            onProgress(i, sanitizedProducts.length, {
               imported: result.importedCount,
               updated: result.updatedCount,
               failed: result.failedCount,
@@ -275,20 +315,20 @@ export async function upsertProductBatch(
       batchSuccess = true
     }
 
-    const processed = Math.min(i + BATCH_SIZE, products.length)
+    const processed = Math.min(i + BATCH_SIZE, sanitizedProducts.length)
     if (onProgress) {
-      onProgress(processed, products.length, {
+      onProgress(processed, sanitizedProducts.length, {
         imported: result.importedCount,
         updated: result.updatedCount,
         failed: result.failedCount,
         retrying: false,
         retryCount: 0,
-        currentStatusText: `Processado lote ${Math.min(processed, products.length)} de ${products.length}...`,
+        currentStatusText: `Processado lote ${Math.min(processed, sanitizedProducts.length)} de ${sanitizedProducts.length}...`,
       })
     }
 
     // Pausa controlada entre lotes sucessivos para respeitar o rate limit do PocketBase
-    if (i + BATCH_SIZE < products.length) {
+    if (i + BATCH_SIZE < sanitizedProducts.length) {
       await sleep(BATCH_DELAY_MS)
     }
   }
