@@ -19,6 +19,15 @@ export interface DbProductRecord {
 }
 
 /**
+ * Verifica se um produto ou linha de dados é da marca "Eletrodiesel"
+ * (mangueiras personalizáveis vendidas exclusivamente em loja física que não devem ir para o catálogo público).
+ * A checagem é insensível a maiúsculas/minúsculas com trim.
+ */
+export function isEletrodiesel(item: { brand?: string | null }): boolean {
+  return (item.brand || '').trim().toLowerCase() === 'eletrodiesel'
+}
+
+/**
  * Verifica se um produto ou linha de dados é classificado como "conforme amostra"
  * (item personalizado vendido somente na loja física que não deve ir para o catálogo público).
  * A checagem é insensível a maiúsculas/minúsculas.
@@ -34,6 +43,20 @@ export function isConformeAmostra(item: {
   const unitStr = (item.unit || '').toLowerCase()
 
   return nameStr.includes(target) || descStr.includes(target) || unitStr.includes(target)
+}
+
+/**
+ * Checagem abrangente se o produto deve ser excluído do catálogo público:
+ * - Produtos "conforme amostra"
+ * - Mangueiras da marca "Eletrodiesel"
+ */
+export function isExcludedProduct(item: {
+  name?: string | null
+  description?: string | null
+  unit?: string | null
+  brand?: string | null
+}): boolean {
+  return isConformeAmostra(item) || isEletrodiesel(item)
 }
 
 export function mapPocketBaseToProduct(record: DbProductRecord): Product {
@@ -75,8 +98,8 @@ export async function fetchAllProducts(): Promise<Product[]> {
     const records = await pb.collection('products').getFullList<DbProductRecord>({
       sort: '-created',
     })
-    // Filtro estrito: remove qualquer produto com 'conforme amostra' no nome, descrição ou unidade
-    return records.filter((record) => !isConformeAmostra(record)).map(mapPocketBaseToProduct)
+    // Filtro estrito: remove qualquer produto com 'conforme amostra' ou da marca 'Eletrodiesel'
+    return records.filter((record) => !isExcludedProduct(record)).map(mapPocketBaseToProduct)
   } catch (error) {
     console.error('Erro ao buscar produtos do PocketBase:', error)
     return []
@@ -86,8 +109,8 @@ export async function fetchAllProducts(): Promise<Product[]> {
 export async function fetchProductById(id: string): Promise<Product | null> {
   try {
     const record = await pb.collection('products').getOne<DbProductRecord>(id)
-    // Se o produto for "conforme amostra", bloqueia o acesso na página de detalhes
-    if (isConformeAmostra(record)) {
+    // Se o produto for "conforme amostra" ou marca "Eletrodiesel", bloqueia o acesso na página de detalhes
+    if (isExcludedProduct(record)) {
       return null
     }
     return mapPocketBaseToProduct(record)
@@ -209,9 +232,9 @@ export async function upsertProductBatch(
 
   let totalRetriedBatches = 0
 
-  // Defensivamente filtra itens "conforme amostra" que possam ter sido passados
+  // Defensivamente filtra itens "conforme amostra" ou marca "Eletrodiesel" que possam ter sido passados
   const sanitizedProducts = products.filter((row) => {
-    if (isConformeAmostra({ name: row.name, unit: row.unit })) {
+    if (isExcludedProduct({ name: row.name, unit: row.unit, brand: row.brand })) {
       result.skippedCount++
       return false
     }

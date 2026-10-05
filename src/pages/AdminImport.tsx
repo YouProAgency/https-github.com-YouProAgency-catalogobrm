@@ -45,6 +45,7 @@ import {
   ImportProgressStats,
   IgnoredRowDetail,
   isConformeAmostra,
+  isEletrodiesel,
 } from '@/services/products'
 import { formatCurrencyBRL } from '@/lib/utils'
 
@@ -97,6 +98,7 @@ export default function AdminImport() {
   const [validRows, setValidRows] = useState<ParsedProductRow[]>([])
   const [ignoredRowsCount, setIgnoredRowsCount] = useState<number>(0)
   const [conformeAmostraIgnoredCount, setConformeAmostraIgnoredCount] = useState<number>(0)
+  const [eletrodieselIgnoredCount, setEletrodieselIgnoredCount] = useState<number>(0)
   const [ignoredDetails, setIgnoredDetails] = useState<IgnoredRowDetail[]>([])
   const [isParsing, setIsParsing] = useState<boolean>(false)
 
@@ -146,6 +148,7 @@ export default function AdminImport() {
       const currentIgnoredDetails: IgnoredRowDetail[] = []
       let ignored = 0
       let amostraCount = 0
+      let eletrodieselCount = 0
 
       // Análise de cabeçalho resiliente:
       // Inspeciona as primeiras 5 linhas para detectar se alguma linha contém cabeçalhos
@@ -306,6 +309,10 @@ export default function AdminImport() {
           continue
         }
 
+        const rawCategory =
+          row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
+        const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
+
         // Pula produtos cuja descrição/nome/unidade contenha "conforme amostra"
         // (produtos personalizados vendidos exclusivamente em loja física)
         if (isConformeAmostra({ name: rawName, unit: rawUnit })) {
@@ -320,9 +327,19 @@ export default function AdminImport() {
           continue
         }
 
-        const rawCategory =
-          row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
-        const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
+        // Pula mangueiras da marca "Eletrodiesel"
+        // (produtos personalizáveis vendidos exclusivamente em loja física)
+        if (isEletrodiesel({ brand: rawBrand })) {
+          ignored++
+          eletrodieselCount++
+          currentIgnoredDetails.push({
+            rowNumber: i + 1,
+            sku: rawSku,
+            name: rawName,
+            reason: 'Marca personalizável / Eletrodiesel (venda exclusiva em loja física)',
+          })
+          continue
+        }
 
         const salePrice = parsePrice(row[colMap.salePrice])
         const price1 = parsePrice(row[colMap.price1])
@@ -346,6 +363,7 @@ export default function AdminImport() {
       setValidRows(parsed)
       setIgnoredRowsCount(ignored)
       setConformeAmostraIgnoredCount(amostraCount)
+      setEletrodieselIgnoredCount(eletrodieselCount)
       setIgnoredDetails(currentIgnoredDetails)
     } catch (err: any) {
       console.error('Erro ao ler arquivo:', err)
@@ -409,6 +427,7 @@ export default function AdminImport() {
     setValidRows([])
     setIgnoredRowsCount(0)
     setConformeAmostraIgnoredCount(0)
+    setEletrodieselIgnoredCount(0)
     setIgnoredDetails([])
     setFinalResult(null)
     setParseError(null)
@@ -595,9 +614,10 @@ export default function AdminImport() {
                 {ignoredRowsCount > 0 && (
                   <span className="text-amber-600 block sm:inline sm:ml-2">
                     ({ignoredRowsCount} linhas ignoradas
-                    {conformeAmostraIgnoredCount > 0
-                      ? `, sendo ${conformeAmostraIgnoredCount} do tipo "conforme amostra"`
-                      : ''}
+                    {conformeAmostraIgnoredCount > 0 &&
+                      `, sendo ${conformeAmostraIgnoredCount} "conforme amostra"`}
+                    {eletrodieselIgnoredCount > 0 &&
+                      `, sendo ${eletrodieselIgnoredCount} da marca "Eletrodiesel"`}
                     ).
                   </span>
                 )}
@@ -810,9 +830,16 @@ export default function AdminImport() {
                   {finalResult.skippedCount}
                 </span>
                 <span className="text-[10px] text-muted-foreground block mt-0.5">
-                  {conformeAmostraIgnoredCount > 0
-                    ? `${conformeAmostraIgnoredCount} conforme amostra`
-                    : 'Sem SKU/Nome'}
+                  {[
+                    conformeAmostraIgnoredCount > 0
+                      ? `${conformeAmostraIgnoredCount} amostra`
+                      : null,
+                    eletrodieselIgnoredCount > 0
+                      ? `${eletrodieselIgnoredCount} Eletrodiesel`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' / ') || 'Sem SKU/Nome'}
                 </span>
               </div>
               <div className="bg-muted/30 p-4 rounded-sm border border-border text-center">
@@ -825,7 +852,7 @@ export default function AdminImport() {
               </div>
             </div>
 
-            {/* Conforme Amostra & Ignored breakdown notice */}
+            {/* Conforme Amostra & Eletrodiesel breakdown notice */}
             {conformeAmostraIgnoredCount > 0 && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm text-amber-900">
                 <h4 className="font-bold text-sm flex items-center gap-2 mb-1">
@@ -836,6 +863,21 @@ export default function AdminImport() {
                   {conformeAmostraIgnoredCount} produto(s) continham o termo "conforme amostra" no
                   nome ou descrição. Conforme a regra de negócio, são itens sob encomenda vendidos
                   apenas no balcão físico e foram automaticamente excluídos do catálogo online.
+                </p>
+              </div>
+            )}
+
+            {eletrodieselIgnoredCount > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm text-amber-900">
+                <h4 className="font-bold text-sm flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  Mangueiras personalizáveis da marca "Eletrodiesel" ignoradas (
+                  {eletrodieselIgnoredCount})
+                </h4>
+                <p className="text-xs text-amber-800">
+                  {eletrodieselIgnoredCount} produto(s) pertencem à marca Eletrodiesel. Conforme a
+                  regra de negócio, são mangueiras personalizáveis vendidas exclusivamente em loja
+                  física e foram automaticamente excluídas do catálogo online.
                 </p>
               </div>
             )}
@@ -926,6 +968,11 @@ export default function AdminImport() {
             descrição contenha o termo "conforme amostra" (em qualquer combinação de
             maiúsculas/minúsculas) é ignorada e não é cadastrada no catálogo, pois trata-se de
             fabricação personalizada da loja física.
+          </p>
+          <p>
+            • <strong>Filtro de marca "Eletrodiesel":</strong> Mangueiras da marca Eletrodiesel (em
+            qualquer combinação de maiúsculas/minúsculas) são ignoradas e não entram no catálogo,
+            pois são personalizáveis e de venda exclusiva em loja física.
           </p>
           <p>
             • <strong>Upsert automático:</strong> Se um produto com o mesmo SKU já estiver no banco,

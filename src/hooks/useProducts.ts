@@ -41,13 +41,14 @@ export function useProduct(id: string | undefined) {
         if (dbProduct) {
           setProduct(dbProduct)
         } else {
-          // Se não encontrou no banco ou foi bloqueado pelo filtro de "conforme amostra"
-          // Não faz fallback para itens com conforme amostra
+          // Se não encontrou no banco ou foi bloqueado pelo filtro de "conforme amostra" / "Eletrodiesel"
+          // Não faz fallback para itens excluídos
           const mock = mockProducts.find((p) => p.id === id)
           if (
             mock &&
             !mock.name.toLowerCase().includes('conforme amostra') &&
-            !mock.shortDescription?.toLowerCase().includes('conforme amostra')
+            !mock.shortDescription?.toLowerCase().includes('conforme amostra') &&
+            (mock.brand || '').trim().toLowerCase() !== 'eletrodiesel'
           ) {
             setProduct(mock)
           } else {
@@ -59,7 +60,8 @@ export function useProduct(id: string | undefined) {
         if (
           mock &&
           !mock.name.toLowerCase().includes('conforme amostra') &&
-          !mock.shortDescription?.toLowerCase().includes('conforme amostra')
+          !mock.shortDescription?.toLowerCase().includes('conforme amostra') &&
+          (mock.brand || '').trim().toLowerCase() !== 'eletrodiesel'
         ) {
           setProduct(mock)
         } else {
