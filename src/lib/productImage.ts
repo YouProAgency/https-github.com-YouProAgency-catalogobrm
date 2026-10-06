@@ -1,5 +1,6 @@
 import balflexForzaDueImg from '@/assets/forzadue-2-2ed92.jpeg'
 import balflexForzaUnoImg from '@/assets/forzauno-1-4bb26.png'
+import balflexForzaUnoTropicImg from '@/assets/forzaunotropic-1c6bc.png'
 import balflexTexmasterImg from '@/assets/texmaster-3ae16.png'
 import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import balflexFuelPumpImg from '@/assets/fuelpump-82454.png'
@@ -8,6 +9,7 @@ import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
+export const BALFLEX_FORZA_UNO_TROPIC_IMAGE = balflexForzaUnoTropicImg
 export const BALFLEX_FORZA_DUE_IMAGE = balflexForzaDueImg
 export const BALFLEX_FORZA_UNO_IMAGE = balflexForzaUnoImg
 export const BALFLEX_TEXMASTER_IMAGE = balflexTexmasterImg
@@ -46,6 +48,26 @@ export function isBalflexBrand(product: ProductImageSubject | null | undefined):
   }
   const text = getSubjectCombinedText(product)
   return /\bbalflex\b/i.test(text)
+}
+
+/**
+ * Checa se o produto é uma mangueira Balflex da linha Forza Uno Tropic.
+ * Regra: restrita à marca Balflex via `isBalflexBrand` e detectando "TROPIC"
+ * por palavra exata case-insensitive (/\btropic\b/i) no texto combinado do produto.
+ * Deve conter também a identificação de "FORZA UNO" para distinguir de outras linhas Tropic (ex.: Forza Due Tropic).
+ */
+export function isBalflexForzaUnoTropic(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  if (!isBalflexBrand(product)) {
+    return false
+  }
+
+  const text = getSubjectCombinedText(product)
+  const hasForzaUno = /\bforza\s+uno\b/i.test(text)
+  const hasTropic = /\btropic\b/i.test(text)
+
+  return hasForzaUno && hasTropic
 }
 
 /**
@@ -154,14 +176,15 @@ export function isBalflexSupersteam(product: ProductImageSubject | null | undefi
 /**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
- * 2. Se for da linha Balflex Forza Uno, retorna a imagem oficial anexada (BALFLEX_FORZA_UNO_IMAGE)
- * 3. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (BALFLEX_FORZA_DUE_IMAGE)
- * 4. Se for da linha Balflex Texmaster, retorna a imagem oficial anexada (BALFLEX_TEXMASTER_IMAGE)
- * 5. Se for da linha Balflex R6 Multipurpose, retorna a imagem oficial anexada (BALFLEX_R6_MULTIPURPOSE_IMAGE)
- * 6. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
- * 7. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
- * 8. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
- * 9. Fallback: placeholder genérico de produto
+ * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
+ * 3. Se for da linha Balflex Forza Uno, retorna a imagem oficial anexada (BALFLEX_FORZA_UNO_IMAGE)
+ * 4. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (BALFLEX_FORZA_DUE_IMAGE)
+ * 5. Se for da linha Balflex Texmaster, retorna a imagem oficial anexada (BALFLEX_TEXMASTER_IMAGE)
+ * 6. Se for da linha Balflex R6 Multipurpose, retorna a imagem oficial anexada (BALFLEX_R6_MULTIPURPOSE_IMAGE)
+ * 7. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
+ * 8. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
+ * 9. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
+ * 10. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -178,6 +201,11 @@ export function getProductImage(
   }
 
   // Avaliação não ambígua de linhas oficiais
+  // Forza Uno Tropic deve vir ANTES de Forza Uno genérica
+  if (isBalflexForzaUnoTropic(product)) {
+    return BALFLEX_FORZA_UNO_TROPIC_IMAGE
+  }
+
   if (isBalflexForzaUno(product)) {
     return BALFLEX_FORZA_UNO_IMAGE
   }
@@ -217,6 +245,7 @@ export function getProductImage(
 /**
  * Retorna a lista completa de imagens para a galeria de detalhes:
  * - Se tiver imagens próprias não-placeholder, retorna elas.
+ * - Se for Forza Uno Tropic, retorna [BALFLEX_FORZA_UNO_TROPIC_IMAGE].
  * - Se for Forza Uno, retorna [BALFLEX_FORZA_UNO_IMAGE].
  * - Se for Forza Due, retorna [BALFLEX_FORZA_DUE_IMAGE].
  * - Se for Texmaster, retorna [BALFLEX_TEXMASTER_IMAGE].
@@ -242,6 +271,10 @@ export function getProductImages(
 
   if (product.image && !product.image.includes('placeholder')) {
     return [product.image]
+  }
+
+  if (isBalflexForzaUnoTropic(product)) {
+    return [BALFLEX_FORZA_UNO_TROPIC_IMAGE]
   }
 
   if (isBalflexForzaUno(product)) {
