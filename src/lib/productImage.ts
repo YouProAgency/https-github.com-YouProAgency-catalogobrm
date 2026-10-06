@@ -7,6 +7,7 @@ import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import balflexFuelPumpImg from '@/assets/fuelpump-82454.png'
 import balflexSupersteamImg from '@/assets/supersteam-76b98.png'
 import blindadaGasFgImg from '@/assets/gasblindada-c22ff.png'
+import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -20,7 +21,13 @@ export const BALFLEX_R6_MULTIPURPOSE_IMAGE = balflexR6MultipurposeImg
 export const BALFLEX_FUEL_PUMP_IMAGE = balflexFuelPumpImg
 export const BALFLEX_SUPERSTEAM_IMAGE = balflexSupersteamImg
 export const BLINDADA_GAS_FG_IMAGE = blindadaGasFgImg
+export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
+
+// Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
+if (import.meta.env.DEV) {
+  import('./productImage.validation').catch(() => {})
+}
 
 export interface ProductImageSubject {
   name?: string | null
@@ -52,6 +59,18 @@ export function isBalflexBrand(product: ProductImageSubject | null | undefined):
   }
   const text = getSubjectCombinedText(product)
   return /\bbalflex\b/i.test(text)
+}
+
+/**
+ * Checa se o produto pertence à marca Korax (pelo campo brand ou pelo texto do nome/descrição).
+ */
+export function isKoraxBrand(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  if (product.brand && /\bkorax\b/i.test(product.brand)) {
+    return true
+  }
+  const text = getSubjectCombinedText(product)
+  return /\bkorax\b/i.test(text)
 }
 
 /**
@@ -153,14 +172,48 @@ export function isBalflexR6Multipurpose(product: ProductImageSubject | null | un
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Kobra 1 (modelo Korax).
+ * Regra:
+ * - Caso contenha a palavra exata "KOBRA 1" (/\bkobra\s*1\b/i) em produto da marca KORAX, OU
+ * - Caso contenha "R1" por palavra exata (/\br1\b/i) E "KOBRA" (/\bkobra\b/i) em produto da marca KORAX.
+ * Utiliza limites de palavra estritos para não casar com R12, R14, R17, etc.
+ */
+export function isKoraxKobra1(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  if (!isKoraxBrand(product)) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasKobra1Explicit = /\bkobra\s*1\b/i.test(text)
+  const hasR1AndKobra = /\br1\b/i.test(text) && /\bkobra\b/i.test(text)
+
+  return hasKobra1Explicit || hasR1AndKobra
+}
+
+/**
  * Checa se o produto é uma mangueira da linha Kobra 2 (modelo Korax).
- * Regra: nome ou descrição contém o termo "Kobra 2" (case-insensitive com limites de palavra tipo `\bkobra\s*2\b`),
- * independente da marca no campo brand (a foto é da mangueira Kobra 2 High Performance / Korax).
+ * Regra:
+ * - Caso contenha o termo explícito "Kobra 2" (/\bkobra\s*2\b/i), OU
+ * - Caso seja da marca KORAX e contenha "R2" por palavra exata (/\br2\b/i) E "KOBRA" (/\bkobra\b/i).
+ * Utiliza limites de palavra estritos para não casar com outros prefixos/sufixos.
  */
 export function isKoraxKobra2(product: ProductImageSubject | null | undefined): boolean {
   if (!product) return false
   const text = getSubjectCombinedText(product)
-  return /\bkobra\s*2\b/i.test(text)
+
+  // Mantém a detecção explícita existente de "KOBRA 2"
+  if (/\bkobra\s*2\b/i.test(text)) {
+    return true
+  }
+
+  // Estende para casar "R2" + "KOBRA" na marca KORAX
+  if (isKoraxBrand(product)) {
+    const hasR2AndKobra = /\br2\b/i.test(text) && /\bkobra\b/i.test(text)
+    if (hasR2AndKobra) {
+      return true
+    }
+  }
+
+  return false
 }
 
 /**
@@ -218,8 +271,9 @@ export function isBlindadaGasFg(product: ProductImageSubject | null | undefined)
  * 5. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (BALFLEX_FORZA_DUE_IMAGE)
  * 6. Se for da linha Balflex Texmaster, retorna a imagem oficial anexada (BALFLEX_TEXMASTER_IMAGE)
  * 7. Se for da linha Balflex R6 Multipurpose, retorna a imagem oficial anexada (BALFLEX_R6_MULTIPURPOSE_IMAGE)
- * 8. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
- * 9. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
+ * 8. Se for da linha Kobra 1 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA1_IMAGE)
+ * 9. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
+ * 10. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
  * 10. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
  * 11. Se for da linha Blindada Gás FG, retorna a imagem oficial anexada (BLINDADA_GAS_FG_IMAGE)
  * 12. Fallback: placeholder genérico de produto
@@ -265,6 +319,10 @@ export function getProductImage(
     return BALFLEX_R6_MULTIPURPOSE_IMAGE
   }
 
+  if (isKoraxKobra1(product)) {
+    return KORAX_KOBRA1_IMAGE
+  }
+
   if (isKoraxKobra2(product)) {
     return KORAX_KOBRA2_IMAGE
   }
@@ -298,6 +356,7 @@ export function getProductImage(
  * - Se for Forza Due, retorna [BALFLEX_FORZA_DUE_IMAGE].
  * - Se for Texmaster, retorna [BALFLEX_TEXMASTER_IMAGE].
  * - Se for R6 Multipurpose, retorna [BALFLEX_R6_MULTIPURPOSE_IMAGE].
+ * - Se for Kobra 1 (Korax), retorna [KORAX_KOBRA1_IMAGE].
  * - Se for Kobra 2 (Korax), retorna [KORAX_KOBRA2_IMAGE].
  * - Se for Fuel Pump, retorna [BALFLEX_FUEL_PUMP_IMAGE].
  * - Se for Supersteam, retorna [BALFLEX_SUPERSTEAM_IMAGE].
@@ -344,6 +403,10 @@ export function getProductImages(
 
   if (isBalflexR6Multipurpose(product)) {
     return [BALFLEX_R6_MULTIPURPOSE_IMAGE]
+  }
+
+  if (isKoraxKobra1(product)) {
+    return [KORAX_KOBRA1_IMAGE]
   }
 
   if (isKoraxKobra2(product)) {
