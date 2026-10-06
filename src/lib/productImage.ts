@@ -7,6 +7,7 @@ import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import balflexFuelPumpImg from '@/assets/fuelpump-82454.png'
 import balflexSupersteamImg from '@/assets/supersteam-76b98.png'
 import blindadaGasFgImg from '@/assets/gasblindada-c22ff.png'
+import cristalImg from '@/assets/cristallisa-938ec.png'
 import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
@@ -21,6 +22,7 @@ export const BALFLEX_R6_MULTIPURPOSE_IMAGE = balflexR6MultipurposeImg
 export const BALFLEX_FUEL_PUMP_IMAGE = balflexFuelPumpImg
 export const BALFLEX_SUPERSTEAM_IMAGE = balflexSupersteamImg
 export const BLINDADA_GAS_FG_IMAGE = blindadaGasFgImg
+export const CRISTAL_IMAGE = cristalImg
 export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 
@@ -263,6 +265,19 @@ export function isBlindadaGasFg(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto pertence à linha Cristal (mangueira de PVC cristal/transparente).
+ * Regra: casa quando o texto combinado do produto (nome + descrições) contém
+ * a palavra "CRISTAL" (case-insensitive com limites de palavra).
+ * Cobre variações como "MANGUEIRA CRISTAL LISA", "MANGUEIRA CRISTAL", "CRISTAL TRANÇADA", etc.
+ * SEM restrição de marca (vale para qualquer fabricante).
+ */
+export function isCristal(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  return /\bcristal\b/i.test(text)
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -274,9 +289,10 @@ export function isBlindadaGasFg(product: ProductImageSubject | null | undefined)
  * 8. Se for da linha Kobra 1 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA1_IMAGE)
  * 9. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
  * 10. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
- * 10. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
- * 11. Se for da linha Blindada Gás FG, retorna a imagem oficial anexada (BLINDADA_GAS_FG_IMAGE)
- * 12. Fallback: placeholder genérico de produto
+ * 11. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
+ * 12. Se for da linha Blindada Gás FG, retorna a imagem oficial anexada (BLINDADA_GAS_FG_IMAGE)
+ * 13. Se for da linha Cristal, retorna a imagem oficial anexada (CRISTAL_IMAGE)
+ * 14. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -339,6 +355,10 @@ export function getProductImage(
     return BLINDADA_GAS_FG_IMAGE
   }
 
+  if (isCristal(product)) {
+    return CRISTAL_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -361,6 +381,7 @@ export function getProductImage(
  * - Se for Fuel Pump, retorna [BALFLEX_FUEL_PUMP_IMAGE].
  * - Se for Supersteam, retorna [BALFLEX_SUPERSTEAM_IMAGE].
  * - Se for Blindada Gás FG, retorna [BLINDADA_GAS_FG_IMAGE].
+ * - Se for Cristal, retorna [CRISTAL_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -423,6 +444,10 @@ export function getProductImages(
 
   if (isBlindadaGasFg(product)) {
     return [BLINDADA_GAS_FG_IMAGE]
+  }
+
+  if (isCristal(product)) {
+    return [CRISTAL_IMAGE]
   }
 
   return [fallbackUrl]
