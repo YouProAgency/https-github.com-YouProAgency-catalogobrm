@@ -6,6 +6,7 @@ import balflexTexmasterImg from '@/assets/texmaster-3ae16.png'
 import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import balflexFuelPumpImg from '@/assets/fuelpump-82454.png'
 import balflexSupersteamImg from '@/assets/supersteam-76b98.png'
+import blindadaGasFgImg from '@/assets/gasblindada-c22ff.png'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -18,6 +19,7 @@ export const BALFLEX_TEXMASTER_IMAGE = balflexTexmasterImg
 export const BALFLEX_R6_MULTIPURPOSE_IMAGE = balflexR6MultipurposeImg
 export const BALFLEX_FUEL_PUMP_IMAGE = balflexFuelPumpImg
 export const BALFLEX_SUPERSTEAM_IMAGE = balflexSupersteamImg
+export const BLINDADA_GAS_FG_IMAGE = blindadaGasFgImg
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 
 export interface ProductImageSubject {
@@ -196,6 +198,18 @@ export function isBalflexSupersteam(product: ProductImageSubject | null | undefi
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha "Mangueira Blindada Gás FG".
+ * Regra: casa quando o texto combinado do produto (nome + descrições) contém
+ * a expressão "BLINDADA GÁS FG" ou "BLINDADA GAS FG" (com ou sem acento, case-insensitive).
+ * NÃO é restrito à marca Balflex (a linha do catálogo pertence à Contuflex).
+ */
+export function isBlindadaGasFg(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  return /blindada\s+g[aá]s\s+fg\b/i.test(text)
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -207,7 +221,8 @@ export function isBalflexSupersteam(product: ProductImageSubject | null | undefi
  * 8. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
  * 9. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
  * 10. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
- * 11. Fallback: placeholder genérico de produto
+ * 11. Se for da linha Blindada Gás FG, retorna a imagem oficial anexada (BLINDADA_GAS_FG_IMAGE)
+ * 12. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -262,6 +277,10 @@ export function getProductImage(
     return BALFLEX_SUPERSTEAM_IMAGE
   }
 
+  if (isBlindadaGasFg(product)) {
+    return BLINDADA_GAS_FG_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -282,6 +301,7 @@ export function getProductImage(
  * - Se for Kobra 2 (Korax), retorna [KORAX_KOBRA2_IMAGE].
  * - Se for Fuel Pump, retorna [BALFLEX_FUEL_PUMP_IMAGE].
  * - Se for Supersteam, retorna [BALFLEX_SUPERSTEAM_IMAGE].
+ * - Se for Blindada Gás FG, retorna [BLINDADA_GAS_FG_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -336,6 +356,10 @@ export function getProductImages(
 
   if (isBalflexSupersteam(product)) {
     return [BALFLEX_SUPERSTEAM_IMAGE]
+  }
+
+  if (isBlindadaGasFg(product)) {
+    return [BLINDADA_GAS_FG_IMAGE]
   }
 
   return [fallbackUrl]
