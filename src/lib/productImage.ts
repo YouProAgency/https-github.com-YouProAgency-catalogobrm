@@ -2,6 +2,7 @@ import balflexForzaDueImg from '@/assets/balflex-forzadue-dacbb.jpg'
 import balflexForzaUnoImg from '@/assets/balflex-forzauno-fc6a1.png'
 import balflexTexmasterImg from '@/assets/balflex-texmaster-504b4.ts'
 import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
+import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -9,6 +10,7 @@ export const BALFLEX_FORZA_DUE_IMAGE = balflexForzaDueImg
 export const BALFLEX_FORZA_UNO_IMAGE = balflexForzaUnoImg
 export const BALFLEX_TEXMASTER_IMAGE = balflexTexmasterImg
 export const BALFLEX_R6_MULTIPURPOSE_IMAGE = balflexR6MultipurposeImg
+export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 
 export interface ProductImageSubject {
   name?: string | null
@@ -101,13 +103,25 @@ export function isBalflexR6Multipurpose(product: ProductImageSubject | null | un
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Kobra 2 (modelo Korax).
+ * Regra: nome ou descrição contém o termo "Kobra 2" (case-insensitive com limites de palavra tipo `\bkobra\s*2\b`),
+ * independente da marca no campo brand (a foto é da mangueira Kobra 2 High Performance / Korax).
+ */
+export function isKoraxKobra2(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  return /\bkobra\s*2\b/i.test(text)
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno, retorna a imagem oficial anexada (BALFLEX_FORZA_UNO_IMAGE)
  * 3. Se for da linha Balflex Forza Due, retorna a imagem oficial anexada (BALFLEX_FORZA_DUE_IMAGE)
  * 4. Se for da linha Balflex Texmaster, retorna a imagem oficial anexada (BALFLEX_TEXMASTER_IMAGE)
  * 5. Se for da linha Balflex R6 Multipurpose, retorna a imagem oficial anexada (BALFLEX_R6_MULTIPURPOSE_IMAGE)
- * 6. Fallback: placeholder genérico de produto
+ * 6. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
+ * 7. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -140,6 +154,10 @@ export function getProductImage(
     return BALFLEX_R6_MULTIPURPOSE_IMAGE
   }
 
+  if (isKoraxKobra2(product)) {
+    return KORAX_KOBRA2_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -155,6 +173,7 @@ export function getProductImage(
  * - Se for Forza Due, retorna [BALFLEX_FORZA_DUE_IMAGE].
  * - Se for Texmaster, retorna [BALFLEX_TEXMASTER_IMAGE].
  * - Se for R6 Multipurpose, retorna [BALFLEX_R6_MULTIPURPOSE_IMAGE].
+ * - Se for Kobra 2 (Korax), retorna [KORAX_KOBRA2_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -189,6 +208,10 @@ export function getProductImages(
 
   if (isBalflexR6Multipurpose(product)) {
     return [BALFLEX_R6_MULTIPURPOSE_IMAGE]
+  }
+
+  if (isKoraxKobra2(product)) {
+    return [KORAX_KOBRA2_IMAGE]
   }
 
   return [fallbackUrl]
