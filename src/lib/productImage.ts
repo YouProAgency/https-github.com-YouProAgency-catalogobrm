@@ -3,6 +3,7 @@ import balflexForzaUnoImg from '@/assets/forzauno-1-4bb26.png'
 import balflexTexmasterImg from '@/assets/texmaster-3ae16.png'
 import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import balflexFuelPumpImg from '@/assets/fuelpump-82454.png'
+import balflexSupersteamImg from '@/assets/supersteam-76b98.png'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -12,6 +13,7 @@ export const BALFLEX_FORZA_UNO_IMAGE = balflexForzaUnoImg
 export const BALFLEX_TEXMASTER_IMAGE = balflexTexmasterImg
 export const BALFLEX_R6_MULTIPURPOSE_IMAGE = balflexR6MultipurposeImg
 export const BALFLEX_FUEL_PUMP_IMAGE = balflexFuelPumpImg
+export const BALFLEX_SUPERSTEAM_IMAGE = balflexSupersteamImg
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 
 export interface ProductImageSubject {
@@ -134,6 +136,22 @@ export function isBalflexFuelPump(product: ProductImageSubject | null | undefine
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Balflex Supersteam.
+ * Regra: o produto precisa ser da marca Balflex E casar com a regex /\bsupersteam\b/i
+ * contra o texto combinado do produto (nome + descrições), exatamente como isBalflexFuelPump.
+ */
+export function isBalflexSupersteam(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  if (!isBalflexBrand(product)) {
+    return false
+  }
+
+  const text = getSubjectCombinedText(product)
+  return /\bsupersteam\b/i.test(text)
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno, retorna a imagem oficial anexada (BALFLEX_FORZA_UNO_IMAGE)
@@ -142,7 +160,8 @@ export function isBalflexFuelPump(product: ProductImageSubject | null | undefine
  * 5. Se for da linha Balflex R6 Multipurpose, retorna a imagem oficial anexada (BALFLEX_R6_MULTIPURPOSE_IMAGE)
  * 6. Se for da linha Kobra 2 (Korax), retorna a imagem oficial anexada (KORAX_KOBRA2_IMAGE)
  * 7. Se for da linha Balflex Fuel Pump, retorna a imagem oficial anexada (BALFLEX_FUEL_PUMP_IMAGE)
- * 8. Fallback: placeholder genérico de produto
+ * 8. Se for da linha Balflex Supersteam, retorna a imagem oficial anexada (BALFLEX_SUPERSTEAM_IMAGE)
+ * 9. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -183,6 +202,10 @@ export function getProductImage(
     return BALFLEX_FUEL_PUMP_IMAGE
   }
 
+  if (isBalflexSupersteam(product)) {
+    return BALFLEX_SUPERSTEAM_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -200,6 +223,7 @@ export function getProductImage(
  * - Se for R6 Multipurpose, retorna [BALFLEX_R6_MULTIPURPOSE_IMAGE].
  * - Se for Kobra 2 (Korax), retorna [KORAX_KOBRA2_IMAGE].
  * - Se for Fuel Pump, retorna [BALFLEX_FUEL_PUMP_IMAGE].
+ * - Se for Supersteam, retorna [BALFLEX_SUPERSTEAM_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -242,6 +266,10 @@ export function getProductImages(
 
   if (isBalflexFuelPump(product)) {
     return [BALFLEX_FUEL_PUMP_IMAGE]
+  }
+
+  if (isBalflexSupersteam(product)) {
+    return [BALFLEX_SUPERSTEAM_IMAGE]
   }
 
   return [fallbackUrl]
