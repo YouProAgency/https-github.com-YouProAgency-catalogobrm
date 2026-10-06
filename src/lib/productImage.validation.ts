@@ -2,6 +2,7 @@ import {
   isKoraxBrand,
   isKoraxKobra1,
   isKoraxKobra2,
+  isCristalTrancada,
   isCristal,
   getProductImage,
   getProductImages,
@@ -16,13 +17,14 @@ import {
   BLINDADA_GAS_FG_IMAGE,
   KORAX_KOBRA1_IMAGE,
   KORAX_KOBRA2_IMAGE,
+  CRISTAL_TRANCADA_IMAGE,
   CRISTAL_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
- * incluindo Kobra 1, Kobra 2, Cristal e proteção de precedência das 11 linhas anteriores.
+ * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal e proteção de precedência das 12 linhas anteriores.
  */
 export function runProductImageSelfCheck(): boolean {
   // Testes de marca
@@ -111,19 +113,71 @@ export function runProductImageSelfCheck(): boolean {
     throw new Error('Marca não KORAX não deve casar com Kobra 1')
   }
 
-  // --- Validação da Linha Cristal ---
-  // Casos positivos: produtos reais do banco ou variações com "CRISTAL"
-  const cristalPositiveCases = [
+  // --- Validação da Linha Cristal Trançada ---
+  // Casos positivos reais do banco e variações (com e sem acento/cedilha, case-insensitive):
+  const cristalTrancadaPositiveCases = [
+    { sku: '3687', name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250', brand: 'IBIRÁ' },
+    { sku: '1571', name: 'MANGUEIRA CRISTAL TRANÇADA 1.1/4" PT275', brand: 'IBIRÁ' },
+    { sku: '1456', name: 'MANGUEIRA CRISTAL TRANÇADA 1.1/2" PT150', brand: 'IBIRÁ' },
+    { sku: '2012', name: 'MANGUEIRA CRISTAL TRANÇADA 3/4" PT250', brand: 'IBIRÁ' },
+    { sku: '1085', name: 'MANGUEIRA CRISTAL TRANÇADA 1/2" PT250', brand: 'IBIRÁ' },
+    { sku: '9149', name: 'MANGUEIRA CRISTAL TRANÇADA 1/4" PT250', brand: 'IBIRÁ' },
+    { sku: '1483', name: 'MANGUEIRA CRISTAL TRANÇADA 2" PT150', brand: 'IBIRÁ' },
+    { sku: '7489', name: 'MANGUEIRA CRISTAL TRANÇADA 5/16" PT250', brand: 'IBIRÁ' },
+    { sku: '3322', name: 'MANGUEIRA CRISTAL TRANÇADA 5/8" PT250', brand: 'IBIRÁ' },
+    { sku: '2124', name: 'MANGUEIRA CRISTAL TRANÇADA 3/8" PT250', brand: 'IBIRÁ' },
+    { sku: '1414', name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250', brand: 'KANAFLEX' },
+    // Variações sem acento / cedilha / minúsculo:
+    { sku: '8001', name: 'mangueira cristal trancada 1/2"', brand: '' },
+    { sku: '8002', name: 'MANGUEIRA CRISTAL TRANCADA 3/4"', brand: 'GENERICA' },
+    { sku: '8003', name: 'CRISTAL TRANÇADA SILICONE', brand: 'OUTRA' },
+  ]
+
+  for (const item of cristalTrancadaPositiveCases) {
+    if (!isCristalTrancada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isCristalTrancada`)
+    }
+    // Também casa com isCristal genérica, mas a precedência deve entregar a foto da trançada!
+    if (!isCristal(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) também deveria casar com isCristal genérica`)
+    }
+    if (getProductImage(item) !== CRISTAL_TRANCADA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou CRISTAL_TRANCADA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== CRISTAL_TRANCADA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [CRISTAL_TRANCADA_IMAGE]`)
+    }
+  }
+
+  // --- Validação da Linha Cristal (Liso) ---
+  // Casos positivos de cristal liso (NÃO devem ser capturados por Cristal Trançada)
+  const cristalLisoPositiveCases = [
     { sku: '6980', name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS', brand: 'IBIRA' },
     { sku: '10033', name: 'MANGUEIRA CRISTAL LISA 3/8" X 1,5MM', brand: 'IBIRA' },
     { sku: '300', name: 'MANGUEIRA CRISTAL LISA 1" X 2,0MM 50 LBS', brand: 'IBIRÁ' },
-    { sku: '3687', name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250', brand: 'IBIRÁ' },
+    { sku: '4236', name: 'MANGUEIRA CRISTAL LISA 1" X 2,0MM 50 LBS', brand: 'IBIRA' },
+    { sku: '3525', name: 'MANGUEIRA CRISTAL LISA 5/16" X 2.0MM 50 LBS', brand: 'IBIRA' },
+    { sku: '8765', name: 'MANGUEIRA CRISTAL LISA 3/8" X 1.0MM', brand: 'IBIRA' },
+    { sku: '1790', name: 'MANGUEIRA CRISTAL LISA 5/16" X 1.0MM E 1.5MM', brand: 'IBIRA' },
+    { sku: '1495', name: 'MANGUEIRA CRISTAL LISA 1/2" X 2.0MM', brand: 'IBIRÁ' },
+    { sku: '7589', name: 'MANGUEIRA CRISTAL LISA 1/4" X 1,0MM', brand: 'IBIRÁ' },
+    { sku: '1620', name: 'MANGUEIRA CRISTAL LISA 1/8" X 2.0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '3810', name: 'MANGUEIRA CRISTAL LISA 3/16" X 1.0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '870', name: 'MANGUEIRA CRISTAL LISA 3/16" X 2.0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '1498', name: 'MANGUEIRA CRISTAL LISA 3/8" X 2.0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '1367', name: 'MANGUEIRA CRISTAL LISA 5/8" X 2,0MM', brand: 'IBIRÁ' },
+    { sku: '527', name: 'MANGUEIRA CRISTAL LISA 3/4" X 2,0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '350', name: 'MANGUEIRA CRISTAL LISA 7/8" X 2,0 MM', brand: 'IBIRÁ' },
     { sku: '7001', name: 'mangueira cristal lisa 5/16"', brand: 'GENERICA' },
     { sku: '7002', name: 'TUBO CRISTAL FLEXÍVEL', brand: '' },
     { sku: '7003', name: 'MANGUEIRA CRISTAL', brand: 'OUTRA' },
   ]
 
-  for (const item of cristalPositiveCases) {
+  for (const item of cristalLisoPositiveCases) {
+    if (isCristalTrancada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristalTrancada`)
+    }
     if (!isCristal(item)) {
       throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isCristal`)
     }
@@ -136,7 +190,16 @@ export function runProductImageSelfCheck(): boolean {
     }
   }
 
-  // Se o produto já possui imagem própria cadastrada (não-placeholder), ela deve prevalecer sobre CRISTAL_IMAGE
+  // Precedência de imagem própria do produto (não-placeholder) para ambas
+  const customImgTrancada = {
+    sku: '7005',
+    name: 'MANGUEIRA CRISTAL TRANÇADA 1/2"',
+    image: 'https://exemplo.com/minha-foto-trancada.jpg',
+  }
+  if (getProductImage(customImgTrancada) !== 'https://exemplo.com/minha-foto-trancada.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre CRISTAL_TRANCADA_IMAGE')
+  }
+
   const customImgProduct = {
     sku: '7004',
     name: 'MANGUEIRA CRISTAL LISA 1/2"',
@@ -146,7 +209,21 @@ export function runProductImageSelfCheck(): boolean {
     throw new Error('Imagem própria do produto deve ter precedência sobre CRISTAL_IMAGE')
   }
 
-  // Casos negativos para Cristal: produtos que NÃO contêm a palavra "CRISTAL"
+  // Casos negativos para Cristal Trançada e Cristal:
+  // 1) Trançada SEM "CRISTAL" (ex.: "MANGUEIRA 5/16\" TRANÇADA ATOXICA" - sku 6135 do banco)
+  const trancadaSemCristal = {
+    sku: '6135',
+    name: 'MANGUEIRA 5/16" TRANÇADA ATOXICA',
+    brand: '',
+  }
+  if (isCristalTrancada(trancadaSemCristal)) {
+    throw new Error('Produto trançado sem palavra CRISTAL NÃO deve casar com isCristalTrancada')
+  }
+  if (isCristal(trancadaSemCristal)) {
+    throw new Error('Produto sem palavra CRISTAL NÃO deve casar com isCristal')
+  }
+
+  // 2) Produtos genéricos sem "CRISTAL" nem "TRANÇADA"
   const cristalNegativeCases = [
     { sku: '9001', name: 'MANGUEIRA HIDRAULICA 1/2 2 TRAMAS', brand: 'BALFLEX' },
     { sku: '9002', name: 'ABRACADEIRA TIPO INCA', brand: 'SUPORTE' },
@@ -154,12 +231,15 @@ export function runProductImageSelfCheck(): boolean {
   ]
 
   for (const item of cristalNegativeCases) {
+    if (isCristalTrancada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristalTrancada`)
+    }
     if (isCristal(item)) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristal`)
     }
   }
 
-  // Garantir que as 11 linhas anteriores continuam intactas e NÃO pegam CRISTAL_IMAGE
+  // Garantir que as 12 linhas anteriores continuam intactas e NÃO pegam CRISTAL_TRANCADA_IMAGE nem CRISTAL_IMAGE
   const priorLines = [
     {
       name: 'Forza Uno Tropic',
@@ -225,6 +305,9 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (res === CRISTAL_IMAGE) {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_IMAGE`)
+    }
+    if (res === CRISTAL_TRANCADA_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_TRANCADA_IMAGE`)
     }
   }
 
