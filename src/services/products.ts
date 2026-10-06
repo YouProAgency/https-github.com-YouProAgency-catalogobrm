@@ -312,9 +312,29 @@ export async function upsertProductBatch(
 
           const normalizedUnit = sanitizeProductUnit(row.unit, row.name)
 
+          // Caso específico: SKU 7970 possui descrição oficial customizada aprovada
+          // ("MANGUEIRA R5 13/32\" BRAKEMASTER 2.100 PSI / 13,8 MPA")
+          // Se a planilha contiver a descrição curta antiga ("MANGUEIRA R5 13/32\""),
+          // preserva a descrição oficial detalhada para não sobrescrever silenciosamente.
+          let resolvedName = row.name.trim()
+          let resolvedDescription: string | undefined = undefined
+
+          if (cleanSku === '7970') {
+            const officialCustomDesc = 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA'
+            if (
+              !resolvedName ||
+              resolvedName.toUpperCase() === 'MANGUEIRA R5 13/32"' ||
+              resolvedName.toUpperCase() === officialCustomDesc.toUpperCase()
+            ) {
+              resolvedName = officialCustomDesc
+              resolvedDescription = officialCustomDesc
+            }
+          }
+
           const payload: Record<string, any> = {
             sku: cleanSku,
-            name: row.name.trim(),
+            name: resolvedName,
+            ...(resolvedDescription ? { description: resolvedDescription } : {}),
             unit: normalizedUnit,
             category: row.category.trim(),
             brand: row.brand.trim(),

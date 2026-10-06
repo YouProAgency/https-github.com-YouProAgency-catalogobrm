@@ -298,7 +298,13 @@ export default function AdminImport() {
         }
 
         const rawSku = row[colMap.sku] !== undefined ? String(row[colMap.sku]).trim() : ''
-        const rawName = row[colMap.name] !== undefined ? String(row[colMap.name]).trim() : ''
+        let rawName = row[colMap.name] !== undefined ? String(row[colMap.name]).trim() : ''
+
+        // Preserva a descrição oficial do SKU 7970 caso a planilha traga a descrição antiga
+        if (rawSku === '7970' && (!rawName || rawName.toUpperCase() === 'MANGUEIRA R5 13/32"')) {
+          rawName = 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA'
+        }
+
         const rawUnitCandidate =
           row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
         const cleanUnit = sanitizeProductUnit(rawUnitCandidate, rawName)

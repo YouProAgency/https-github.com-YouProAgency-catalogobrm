@@ -42,7 +42,34 @@ export function runSeoSelfCheck() {
     throw new Error(`Descrição excedeu comprimento seguro (~160 chars): ${desc.length}`)
   }
 
-  // 3. URLs absolutas
+  // 3. Teste específico para o SKU 7970 com a nova descrição (Brakemaster 2.100 PSI / 13,8 MPA)
+  const sku7970Product: Product = {
+    id: '6ynj8dnhlrlohij',
+    sku: '7970',
+    name: 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA',
+    brand: 'BALFLEX',
+    category: 'MANGUEIRA HIDRAULICA',
+    subcategory: '',
+    unit: 'MT',
+    price: 63.2,
+    shortDescription: 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA',
+    longDescription: 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA',
+    images: [],
+    specs: { Marca: 'BALFLEX', Unidade: 'MT' },
+    featured: false,
+  }
+
+  const sku7970Title = buildProductTitle(sku7970Product)
+  if (!sku7970Title.includes('MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA')) {
+    throw new Error(`Título incorreto para SKU 7970: ${sku7970Title}`)
+  }
+
+  const sku7970Desc = buildProductDescription(sku7970Product)
+  if (!sku7970Desc.includes('WhatsApp (11) 9.4708-2171')) {
+    throw new Error(`Descrição incorreta para SKU 7970: ${sku7970Desc}`)
+  }
+
+  // 4. URLs absolutas
   const relUrl = '/assets/forzadue-2-2ed92.jpeg'
   const absUrl = toAbsoluteImageUrl(relUrl)
   if (absUrl !== `${SITE_DOMAIN}${relUrl}`) {
