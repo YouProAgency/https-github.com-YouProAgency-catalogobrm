@@ -29,6 +29,7 @@ import {
 } from '@/components/CatalogFilters'
 import { extractBitola, getAvailableBitolasWithCount } from '@/lib/bitola'
 import { isExcludedProduct } from '@/services/products'
+import { resetDefaultSeo } from '@/lib/seo'
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -216,6 +217,10 @@ export default function Index() {
     featuredOnly,
     sortBy,
   ])
+
+  useEffect(() => {
+    resetDefaultSeo()
+  }, [])
 
   const showHero =
     !queryParam &&

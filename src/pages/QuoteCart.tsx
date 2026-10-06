@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { supabase } from '@/lib/supabase'
+import { applySeoTags, resetDefaultSeo, DEFAULT_SEO } from '@/lib/seo'
 
 const formSchema = z.object({
   name: z.string().min(2, 'O nome é obrigatório.'),
@@ -40,6 +41,20 @@ export default function QuoteCart() {
     resolver: zodResolver(formSchema),
     defaultValues: { name: '', email: '', company: '', phone: '', message: '' },
   })
+
+  useEffect(() => {
+    applySeoTags({
+      title: 'Carrinho de Orçamentos — BR Mangueiras',
+      description:
+        'Revise seus itens selecionados e solicite cotação formal com condições comerciais e prazos de entrega da BR Mangueiras.',
+      url: `${DEFAULT_SEO.url}orcamento`,
+      canonical: `${DEFAULT_SEO.url}orcamento`,
+      robots: 'noindex, follow',
+    })
+    return () => {
+      resetDefaultSeo()
+    }
+  }, [])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)

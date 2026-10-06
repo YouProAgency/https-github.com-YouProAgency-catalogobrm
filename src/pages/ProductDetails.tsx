@@ -11,6 +11,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage, getProductImages } from '@/lib/productImage'
+import { applyProductSeo, applyNotFoundSeo, resetDefaultSeo } from '@/lib/seo'
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -24,11 +25,20 @@ export default function ProductDetails() {
   const [mainImage, setMainImage] = useState('')
 
   useEffect(() => {
+    if (loading) return
+
     if (product) {
       setMainImage(getProductImage(product))
+      applyProductSeo(product)
       window.scrollTo(0, 0)
+    } else {
+      applyNotFoundSeo('Produto não encontrado — Catálogo BR Mangueiras')
     }
-  }, [product])
+
+    return () => {
+      resetDefaultSeo()
+    }
+  }, [product, loading])
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
