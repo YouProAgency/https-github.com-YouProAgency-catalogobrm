@@ -1,6 +1,6 @@
 import balflexForzaDueImg from '@/assets/forzadue-2-2ed92.jpeg'
 import balflexForzaUnoImg from '@/assets/forzauno-1-4bb26.png'
-import balflexTexmasterImg from '@/assets/balflex-texmaster-504b4.ts'
+import balflexTexmasterImg from '@/assets/texmaster-3ae16.png'
 import balflexR6MultipurposeImg from '@/assets/multipurpose-2-f77a3.jpeg'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 
