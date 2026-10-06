@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { products as mockProducts } from '@/data/products'
 import { Product } from '@/types'
-import { fetchAllProducts, fetchProductById } from '@/services/products'
+import { fetchAllProducts, fetchProductById, isExcludedProduct } from '@/services/products'
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -41,14 +41,18 @@ export function useProduct(id: string | undefined) {
         if (dbProduct) {
           setProduct(dbProduct)
         } else {
-          // Se não encontrou no banco ou foi bloqueado pelo filtro de "conforme amostra" / "Eletrodiesel"
+          // Se não encontrou no banco ou foi bloqueado pelos filtros de exclusão permanente (SKU 2713 / conforme amostra / Eletrodiesel)
           // Não faz fallback para itens excluídos
           const mock = mockProducts.find((p) => p.id === id)
           if (
             mock &&
-            !mock.name.toLowerCase().includes('conforme amostra') &&
-            !mock.shortDescription?.toLowerCase().includes('conforme amostra') &&
-            (mock.brand || '').trim().toLowerCase() !== 'eletrodiesel'
+            !isExcludedProduct({
+              sku: mock.sku,
+              name: mock.name,
+              brand: mock.brand,
+              unit: mock.unit,
+              description: mock.shortDescription || mock.longDescription,
+            })
           ) {
             setProduct(mock)
           } else {
@@ -59,9 +63,13 @@ export function useProduct(id: string | undefined) {
         const mock = mockProducts.find((p) => p.id === id)
         if (
           mock &&
-          !mock.name.toLowerCase().includes('conforme amostra') &&
-          !mock.shortDescription?.toLowerCase().includes('conforme amostra') &&
-          (mock.brand || '').trim().toLowerCase() !== 'eletrodiesel'
+          !isExcludedProduct({
+            sku: mock.sku,
+            name: mock.name,
+            brand: mock.brand,
+            unit: mock.unit,
+            description: mock.shortDescription || mock.longDescription,
+          })
         ) {
           setProduct(mock)
         } else {

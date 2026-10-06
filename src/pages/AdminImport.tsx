@@ -44,6 +44,7 @@ import {
   ImportResult,
   ImportProgressStats,
   IgnoredRowDetail,
+  isExcludedSku,
   isConformeAmostra,
   isEletrodiesel,
   sanitizeProductUnit,
@@ -100,6 +101,7 @@ export default function AdminImport() {
   const [ignoredRowsCount, setIgnoredRowsCount] = useState<number>(0)
   const [conformeAmostraIgnoredCount, setConformeAmostraIgnoredCount] = useState<number>(0)
   const [eletrodieselIgnoredCount, setEletrodieselIgnoredCount] = useState<number>(0)
+  const [skuExcluidoIgnoredCount, setSkuExcluidoIgnoredCount] = useState<number>(0)
   const [ignoredDetails, setIgnoredDetails] = useState<IgnoredRowDetail[]>([])
   const [isParsing, setIsParsing] = useState<boolean>(false)
 
@@ -150,6 +152,7 @@ export default function AdminImport() {
       let ignored = 0
       let amostraCount = 0
       let eletrodieselCount = 0
+      let skuExcluidoCount = 0
 
       // Análise de cabeçalho resiliente:
       // Inspeciona as primeiras 5 linhas para detectar se alguma linha contém cabeçalhos
@@ -312,6 +315,19 @@ export default function AdminImport() {
           continue
         }
 
+        // Blindagem de SKUs excluídos permanentemente (ex.: SKU 2713 Supersteam)
+        if (isExcludedSku(rawSku)) {
+          ignored++
+          skuExcluidoCount++
+          currentIgnoredDetails.push({
+            rowNumber: i + 1,
+            sku: rawSku,
+            name: rawName,
+            reason: `SKU ${rawSku} excluído permanentemente do catálogo por solicitação de negócio`,
+          })
+          continue
+        }
+
         const rawCategory =
           row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
         const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
@@ -367,6 +383,7 @@ export default function AdminImport() {
       setIgnoredRowsCount(ignored)
       setConformeAmostraIgnoredCount(amostraCount)
       setEletrodieselIgnoredCount(eletrodieselCount)
+      setSkuExcluidoIgnoredCount(skuExcluidoCount)
       setIgnoredDetails(currentIgnoredDetails)
     } catch (err: any) {
       console.error('Erro ao ler arquivo:', err)
@@ -431,6 +448,7 @@ export default function AdminImport() {
     setIgnoredRowsCount(0)
     setConformeAmostraIgnoredCount(0)
     setEletrodieselIgnoredCount(0)
+    setSkuExcluidoIgnoredCount(0)
     setIgnoredDetails([])
     setFinalResult(null)
     setParseError(null)
@@ -617,6 +635,8 @@ export default function AdminImport() {
                 {ignoredRowsCount > 0 && (
                   <span className="text-amber-600 block sm:inline sm:ml-2">
                     ({ignoredRowsCount} linhas ignoradas
+                    {skuExcluidoIgnoredCount > 0 &&
+                      `, sendo ${skuExcluidoIgnoredCount} com SKU excluído permanente (ex: 2713)`}
                     {conformeAmostraIgnoredCount > 0 &&
                       `, sendo ${conformeAmostraIgnoredCount} "conforme amostra"`}
                     {eletrodieselIgnoredCount > 0 &&
@@ -834,6 +854,7 @@ export default function AdminImport() {
                 </span>
                 <span className="text-[10px] text-muted-foreground block mt-0.5">
                   {[
+                    skuExcluidoIgnoredCount > 0 ? `${skuExcluidoIgnoredCount} SKU excluído` : null,
                     conformeAmostraIgnoredCount > 0
                       ? `${conformeAmostraIgnoredCount} amostra`
                       : null,
@@ -855,7 +876,21 @@ export default function AdminImport() {
               </div>
             </div>
 
-            {/* Conforme Amostra & Eletrodiesel breakdown notice */}
+            {/* SKU Excluído, Conforme Amostra & Eletrodiesel breakdown notice */}
+            {skuExcluidoIgnoredCount > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm text-amber-900">
+                <h4 className="font-bold text-sm flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  Produtos com SKU excluído permanentemente ignorados ({skuExcluidoIgnoredCount})
+                </h4>
+                <p className="text-xs text-amber-800">
+                  {skuExcluidoIgnoredCount} linha(s) possuem SKU em lista de exclusão permanente
+                  (como o SKU 2713). Conforme a regra de negócio do catálogo BR Mangueiras, esses
+                  itens foram descartados e não são reimportados.
+                </p>
+              </div>
+            )}
+
             {conformeAmostraIgnoredCount > 0 && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm text-amber-900">
                 <h4 className="font-bold text-sm flex items-center gap-2 mb-1">
@@ -965,6 +1000,10 @@ export default function AdminImport() {
           <p>
             • <strong>Produtos sem preço:</strong> Se a coluna de Preço Venda estiver em branco para
             um item, o catálogo exibirá automaticamente a indicação "Consulte" ao invés de R$ 0,00.
+          </p>
+          <p>
+            • <strong>Bloqueio permanente de SKU (ex.: SKU 2713):</strong> Linhas com SKUs marcados
+            para exclusão definitiva são descartadas na importação e nunca reingressam no banco.
           </p>
           <p>
             • <strong>Filtro de itens "Conforme Amostra":</strong> Qualquer linha cujo nome ou

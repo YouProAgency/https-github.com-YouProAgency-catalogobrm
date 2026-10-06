@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Product, CartItem } from '@/types'
 import { useToast } from '@/hooks/use-toast'
+import { isExcludedProduct } from '@/services/products'
 
 interface CartContextType {
   items: CartItem[]
@@ -19,12 +20,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isCartAnimating, setIsCartAnimating] = useState(false)
   const { toast } = useToast()
 
-  // Load from local storage
+  // Load from local storage and sanitize against excluded products (e.g. SKU 2713)
   useEffect(() => {
     const saved = localStorage.getItem('brm_cart')
     if (saved) {
       try {
-        setItems(JSON.parse(saved))
+        const parsed: CartItem[] = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(
+            (item) =>
+              item?.product &&
+              !isExcludedProduct({
+                sku: item.product.sku,
+                name: item.product.name,
+                brand: item.product.brand,
+                unit: item.product.unit,
+                description: item.product.shortDescription || item.product.longDescription,
+              }),
+          )
+          setItems(valid)
+        }
       } catch (e) {
         console.error('Failed to parse cart', e)
       }
@@ -42,6 +57,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const addToCart = (product: Product, quantity = 1) => {
+    if (
+      isExcludedProduct({
+        sku: product.sku,
+        name: product.name,
+        brand: product.brand,
+        unit: product.unit,
+        description: product.shortDescription || product.longDescription,
+      })
+    ) {
+      toast({
+        title: 'Produto Indisponível',
+        description: 'Este item não está disponível para cotação no catálogo online.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setItems((current) => {
       const existing = current.find((item) => item.product.id === product.id)
       if (existing) {

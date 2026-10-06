@@ -58,6 +58,21 @@ export function sanitizeProductUnit(
 }
 
 /**
+ * Lista de SKUs com exclusão permanente do catálogo BR Mangueiras.
+ * O SKU 2713 ("mangueira 1 supersteam 270PSI W.P 2700PSI B.P Vermelha")
+ * foi removido por solicitação de negócio e não deve reaparecer nem por reimportação.
+ */
+export const EXCLUDED_SKUS: ReadonlySet<string> = new Set(['2713'])
+
+/**
+ * Verifica se um SKU específico está na lista de exclusão permanente.
+ */
+export function isExcludedSku(sku?: string | null): boolean {
+  if (!sku) return false
+  return EXCLUDED_SKUS.has(sku.trim())
+}
+
+/**
  * Verifica se um produto ou linha de dados é da marca "Eletrodiesel"
  * (mangueiras personalizáveis vendidas exclusivamente em loja física que não devem ir para o catálogo público).
  * A checagem é insensível a maiúsculas/minúsculas com trim.
@@ -86,16 +101,18 @@ export function isConformeAmostra(item: {
 
 /**
  * Checagem abrangente se o produto deve ser excluído do catálogo público:
+ * - SKUs bloqueados permanentemente (ex.: SKU 2713)
  * - Produtos "conforme amostra"
  * - Mangueiras da marca "Eletrodiesel"
  */
 export function isExcludedProduct(item: {
+  sku?: string | null
   name?: string | null
   description?: string | null
   unit?: string | null
   brand?: string | null
 }): boolean {
-  return isConformeAmostra(item) || isEletrodiesel(item)
+  return isExcludedSku(item.sku) || isConformeAmostra(item) || isEletrodiesel(item)
 }
 
 export function mapPocketBaseToProduct(record: DbProductRecord): Product {
@@ -270,9 +287,9 @@ export async function upsertProductBatch(
 
   let totalRetriedBatches = 0
 
-  // Defensivamente filtra itens "conforme amostra" ou marca "Eletrodiesel" que possam ter sido passados
+  // Defensivamente filtra itens excluídos (SKU 2713, "conforme amostra" ou marca "Eletrodiesel") que possam ter sido passados
   const sanitizedProducts = products.filter((row) => {
-    if (isExcludedProduct({ name: row.name, unit: row.unit, brand: row.brand })) {
+    if (isExcludedProduct({ sku: row.sku, name: row.name, unit: row.unit, brand: row.brand })) {
       result.skippedCount++
       return false
     }
