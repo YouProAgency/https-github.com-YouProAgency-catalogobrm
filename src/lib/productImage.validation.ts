@@ -69,16 +69,19 @@ export function runProductImageSelfCheck(): boolean {
     }
   }
 
-  // Caso de borda: R12 KOBRA NÃO deve casar nem com Kobra 1 nem com Kobra 2
+  // Caso de borda: R12 KOBRA NÃO deve casar nem com Kobra 1 nem com Kobra 2 (\bR1\b não deve casar com R12)
   const r12Product = { sku: '9999', name: 'MANGUEIRA R12 3/4" KOBRA', brand: 'KORAX' }
-  if (isKoraxKobra1(r12Product)) {
-    throw new Error('R12 KOBRA NÃO pode casar com Kobra 1')
-  }
-  if (isKoraxKobra2(r12Product)) {
-    throw new Error('R12 KOBRA NÃO pode casar com Kobra 2')
-  }
-  if (getProductImage(r12Product) !== DEFAULT_PRODUCT_PLACEHOLDER) {
-    throw new Error('R12 KOBRA deveria retornar placeholder default')
+  const r12Hypothetical = { sku: '9998', name: 'R12 1" ALTA PRESSAO KOBRA', brand: 'KORAX' }
+  for (const item of [r12Product, r12Hypothetical]) {
+    if (isKoraxKobra1(item)) {
+      throw new Error(`Produto ${item.name} NÃO pode casar com Kobra 1`)
+    }
+    if (isKoraxKobra2(item)) {
+      throw new Error(`Produto ${item.name} NÃO pode casar com Kobra 2`)
+    }
+    if (getProductImage(item) !== DEFAULT_PRODUCT_PLACEHOLDER) {
+      throw new Error(`Produto ${item.name} deveria retornar placeholder default`)
+    }
   }
 
   // Outros modelos Korax que não devem casar
