@@ -148,31 +148,72 @@ export function mapPocketBaseToProduct(record: DbProductRecord): Product {
   }
 }
 
-export async function fetchAllProducts(): Promise<Product[]> {
-  try {
-    const records = await pb.collection('products').getFullList<DbProductRecord>({
-      sort: '-created',
-    })
-    // Filtro estrito: remove qualquer produto com 'conforme amostra' ou da marca 'Eletrodiesel'
-    return records.filter((record) => !isExcludedProduct(record)).map(mapPocketBaseToProduct)
-  } catch (error) {
-    console.error('Erro ao buscar produtos do PocketBase:', error)
-    return []
+export async function fetchAllProducts(retries = 2, delayMs = 600): Promise<Product[]> {
+  let attempt = 0
+  let lastError: any = null
+
+  while (attempt <= retries) {
+    try {
+      const records = await pb.collection('products').getFullList<DbProductRecord>({
+        sort: '-created',
+      })
+      // Filtro estrito: remove qualquer produto com 'conforme amostra' ou da marca 'Eletrodiesel'
+      return records.filter((record) => !isExcludedProduct(record)).map(mapPocketBaseToProduct)
+    } catch (error) {
+      lastError = error
+      attempt++
+      if (attempt <= retries) {
+        const wait = delayMs * Math.pow(2, attempt - 1)
+        console.warn(
+          `[fetchAllProducts] Falha na tentativa ${attempt}/${retries + 1}. Tentando novamente em ${wait}ms...`,
+          error,
+        )
+        await sleep(wait)
+      }
+    }
   }
+
+  console.error('Erro ao buscar produtos do PocketBase após tentativas:', lastError)
+  throw lastError || new Error('Não foi possível carregar os produtos do catálogo.')
 }
 
-export async function fetchProductById(id: string): Promise<Product | null> {
-  try {
-    const record = await pb.collection('products').getOne<DbProductRecord>(id)
-    // Se o produto for "conforme amostra" ou marca "Eletrodiesel", bloqueia o acesso na página de detalhes
-    if (isExcludedProduct(record)) {
-      return null
+export async function fetchProductById(
+  id: string,
+  retries = 2,
+  delayMs = 500,
+): Promise<Product | null> {
+  let attempt = 0
+  let lastError: any = null
+
+  while (attempt <= retries) {
+    try {
+      const record = await pb.collection('products').getOne<DbProductRecord>(id)
+      // Se o produto for "conforme amostra" ou marca "Eletrodiesel", bloqueia o acesso na página de detalhes
+      if (isExcludedProduct(record)) {
+        return null
+      }
+      return mapPocketBaseToProduct(record)
+    } catch (error: any) {
+      // Se for 404 (recurso não encontrado), não adianta retentar
+      const status = error?.status || error?.statusCode || error?.response?.status
+      if (status === 404) {
+        return null
+      }
+      lastError = error
+      attempt++
+      if (attempt <= retries) {
+        const wait = delayMs * Math.pow(2, attempt - 1)
+        console.warn(
+          `[fetchProductById] Falha na busca do produto ${id} (${attempt}/${retries + 1}). Retentando em ${wait}ms...`,
+          error,
+        )
+        await sleep(wait)
+      }
     }
-    return mapPocketBaseToProduct(record)
-  } catch (error) {
-    console.error(`Erro ao buscar produto ${id} do PocketBase:`, error)
-    return null
   }
+
+  console.error(`Erro ao buscar produto ${id} do PocketBase após tentativas:`, lastError)
+  throw lastError || new Error(`Não foi possível carregar o produto ${id}.`)
 }
 
 export interface ParsedProductRow {

@@ -1,86 +1,72 @@
-import { useState, useEffect } from 'react'
-import { products as mockProducts } from '@/data/products'
+import { useState, useEffect, useCallback } from 'react'
 import { Product } from '@/types'
-import { fetchAllProducts, fetchProductById, isExcludedProduct } from '@/services/products'
+import { fetchAllProducts, fetchProductById } from '@/services/products'
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const dbProducts = await fetchAllProducts()
-        if (dbProducts && dbProducts.length > 0) {
-          setProducts(dbProducts)
-        } else {
-          setProducts(mockProducts)
-        }
-      } catch (err) {
-        console.error('Erro ao conectar ao PocketBase, usando dados fallback.', err)
-        setProducts(mockProducts)
-      } finally {
-        setLoading(false)
-      }
+  const loadProducts = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const dbProducts = await fetchAllProducts()
+      setProducts(dbProducts || [])
+    } catch (err: any) {
+      console.error('Erro ao conectar ao PocketBase e carregar catálogo:', err)
+      const errorMsg =
+        err?.status === 429
+          ? 'Muitas requisições no momento. Por favor, aguarde alguns segundos e tente novamente.'
+          : 'Não foi possível carregar o catálogo. Verifique sua conexão e tente novamente.'
+      setError(errorMsg)
+      setProducts([])
+    } finally {
+      setLoading(false)
     }
-    fetchProducts()
   }, [])
 
-  return { products, loading }
+  useEffect(() => {
+    loadProducts()
+  }, [loadProducts])
+
+  return { products, loading, error, refetch: loadProducts }
 }
 
 export function useProduct(id: string | undefined) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!id) return
-    async function fetchProduct() {
-      try {
-        const dbProduct = await fetchProductById(id)
-        if (dbProduct) {
-          setProduct(dbProduct)
-        } else {
-          // Se não encontrou no banco ou foi bloqueado pelos filtros de exclusão permanente (SKU 2713 / conforme amostra / Eletrodiesel)
-          // Não faz fallback para itens excluídos
-          const mock = mockProducts.find((p) => p.id === id)
-          if (
-            mock &&
-            !isExcludedProduct({
-              sku: mock.sku,
-              name: mock.name,
-              brand: mock.brand,
-              unit: mock.unit,
-              description: mock.shortDescription || mock.longDescription,
-            })
-          ) {
-            setProduct(mock)
-          } else {
-            setProduct(null)
-          }
-        }
-      } catch (err) {
-        const mock = mockProducts.find((p) => p.id === id)
-        if (
-          mock &&
-          !isExcludedProduct({
-            sku: mock.sku,
-            name: mock.name,
-            brand: mock.brand,
-            unit: mock.unit,
-            description: mock.shortDescription || mock.longDescription,
-          })
-        ) {
-          setProduct(mock)
-        } else {
-          setProduct(null)
-        }
-      } finally {
-        setLoading(false)
-      }
+  const loadProduct = useCallback(async () => {
+    if (!id) {
+      setProduct(null)
+      setLoading(false)
+      setError(null)
+      return
     }
-    fetchProduct()
+
+    setLoading(true)
+    setError(null)
+    try {
+      const dbProduct = await fetchProductById(id)
+      setProduct(dbProduct)
+    } catch (err: any) {
+      console.error(`Erro ao carregar produto ${id}:`, err)
+      const errorMsg =
+        err?.status === 429
+          ? 'Muitas requisições no momento. Por favor, aguarde alguns segundos e tente novamente.'
+          : 'Não foi possível carregar as informações deste produto.'
+      setError(errorMsg)
+      setProduct(null)
+    } finally {
+      setLoading(false)
+    }
   }, [id])
 
-  return { product, loading }
+  useEffect(() => {
+    loadProduct()
+  }, [loadProduct])
+
+  return { product, loading, error, refetch: loadProduct }
 }

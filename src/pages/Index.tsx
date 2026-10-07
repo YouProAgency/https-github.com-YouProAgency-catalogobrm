@@ -7,6 +7,8 @@ import {
   Loader2,
   Search,
   RotateCcw,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 
 import { useProducts } from '@/hooks/useProducts'
@@ -33,7 +35,7 @@ import { resetDefaultSeo } from '@/lib/seo'
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { products, loading } = useProducts()
+  const { products, loading, error, refetch } = useProducts()
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('newest')
@@ -231,8 +233,34 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">
+          Carregando catálogo de produtos...
+        </p>
+      </div>
+    )
+  }
+
+  if (error && cleanProducts.length === 0) {
+    return (
+      <div className="flex-1 w-full pb-16 flex items-center justify-center min-h-[60vh] px-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-sm border border-border shadow-sm text-center flex flex-col items-center">
+          <div className="w-14 h-14 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+            <AlertTriangle className="h-7 w-7" />
+          </div>
+          <h2 className="text-xl font-bold text-secondary mb-2">
+            Não foi possível carregar o catálogo
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{error}</p>
+          <Button
+            onClick={() => refetch()}
+            className="w-full rounded-sm font-bold bg-primary hover:bg-primary/90 gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Tentar Novamente
+          </Button>
+        </div>
       </div>
     )
   }

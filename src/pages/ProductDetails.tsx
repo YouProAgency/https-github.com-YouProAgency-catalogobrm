@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Share2, ShoppingCart, Info, TableProperties, Loader2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  Share2,
+  ShoppingCart,
+  Info,
+  TableProperties,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react'
 
 import { useProduct, useProducts } from '@/hooks/useProducts'
 import { useCart } from '@/context/CartContext'
@@ -19,7 +28,7 @@ export default function ProductDetails() {
   const { addToCart } = useCart()
   const { toast } = useToast()
 
-  const { product, loading } = useProduct(id)
+  const { product, loading, error, refetch } = useProduct(id)
   const { products: allProducts } = useProducts()
 
   const [mainImage, setMainImage] = useState('')
@@ -41,16 +50,47 @@ export default function ProductDetails() {
   }, [product, loading])
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">
+          Carregando detalhes do produto...
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="py-20 text-center container mx-auto px-4 max-w-md">
+        <div className="w-14 h-14 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+          <AlertTriangle className="h-7 w-7" />
+        </div>
+        <h2 className="text-2xl font-bold text-secondary mb-2">Erro ao carregar produto</h2>
+        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{error}</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button
+            onClick={() => refetch()}
+            className="rounded-sm font-bold bg-primary hover:bg-primary/90 gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Tentar Novamente
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/')} className="rounded-sm font-bold">
+            Voltar ao Catálogo
+          </Button>
+        </div>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className="py-20 text-center container mx-auto">
+      <div className="py-20 text-center container mx-auto px-4">
         <h2 className="text-2xl font-bold text-secondary">Produto não encontrado no catálogo</h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+          O produto solicitado pode ter sido descontinuado ou não está disponível para visualização
+          pública.
+        </p>
         <Button onClick={() => navigate('/')} className="mt-6 rounded-sm font-bold">
           Voltar ao Início
         </Button>
