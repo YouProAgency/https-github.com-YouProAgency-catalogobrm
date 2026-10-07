@@ -11,6 +11,7 @@ import cristalImg from '@/assets/cristallisa-938ec.png'
 import cristalTrancadaImg from '@/assets/cristaltrancada-ebff7.png'
 import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
+import saidaCorrugadaBrancaImg from '@/assets/corrugadabranca-7439b.png'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
@@ -30,6 +31,7 @@ export const CRISTAL_TRANCADA_IMAGE = cristalTrancadaImg
 export const CRISTAL_IMAGE = cristalImg
 export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
+export const SAIDA_CORRUGADA_BRANCA_IMAGE = saidaCorrugadaBrancaImg
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
@@ -317,6 +319,25 @@ export function isSaidaDrenagem(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Saída Corrugada Branca.
+ * Regra: exige a presença simultânea dos termos que caracterizam a linha:
+ * "SAÍDA" / "SAIDA" E "CORRUGADA" E "BRANCA"
+ * no texto consolidado do produto (nome + descrições), case-insensitive e tolerante a acentuação.
+ * SEM restrição de marca.
+ * Não deve capturar:
+ * - Saída Drenagem (que tem regra e foto própria com precedência)
+ * - Saída Tanquinho ou outras mangueiras corrugadas que não sejam brancas ou de saída
+ */
+export function isSaidaCorrugadaBranca(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  const hasSaida = /\bsa[ií]da\b/i.test(text)
+  const hasCorrugada = /\bcorrugada\b/i.test(text)
+  const hasBranca = /\bbranca\b/i.test(text)
+  return hasSaida && hasCorrugada && hasBranca
+}
+
+/**
  * Checa se o produto é uma mangueira da linha Sucção Laranja / Sucção Pesada.
  * Regra: analisa o texto consolidado do produto (nome + descrições) e casa quando
  * houver a palavra "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" (tolerante a acentos e cedilha, case-insensitive)
@@ -508,6 +529,10 @@ export function getProductImage(
     return SAIDA_DRENAGEM_IMAGE
   }
 
+  if (isSaidaCorrugadaBranca(product)) {
+    return SAIDA_CORRUGADA_BRANCA_IMAGE
+  }
+
   if (isSuccaoLaranja(product)) {
     return SUCCAO_LARANJA_IMAGE
   }
@@ -615,6 +640,10 @@ export function getProductImages(
 
   if (isSaidaDrenagem(product)) {
     return [SAIDA_DRENAGEM_IMAGE]
+  }
+
+  if (isSaidaCorrugadaBranca(product)) {
+    return [SAIDA_CORRUGADA_BRANCA_IMAGE]
   }
 
   if (isSuccaoLaranja(product)) {

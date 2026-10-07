@@ -5,6 +5,7 @@ import {
   isCristalTrancada,
   isCristal,
   isSaidaDrenagem,
+  isSaidaCorrugadaBranca,
   isSuccaoLaranja,
   isSuccaoCinzaOuVacuoArCinza,
   getProductImage,
@@ -22,6 +23,7 @@ import {
   KORAX_KOBRA2_IMAGE,
   CRISTAL_TRANCADA_IMAGE,
   CRISTAL_IMAGE,
+  SAIDA_CORRUGADA_BRANCA_IMAGE,
   SAIDA_DRENAGEM_IMAGE,
   SUCCAO_LARANJA_IMAGE,
   VACUO_AR_CINZA_IMAGE,
@@ -282,7 +284,7 @@ export function runProductImageSelfCheck(): boolean {
   }
 
   // Casos negativos cruciais para Saída Drenagem:
-  // SKUs 8894, 8895 ("MANGUEIRA SAIDA CORRUGADA") e SKU 4523 ("MANGUEIRA SAIDA TANQUINHO") NÃO devem receber a imagem!
+  // SKUs 8894, 8895 ("MANGUEIRA SAIDA CORRUGADA") e SKU 4523 ("MANGUEIRA SAIDA TANQUINHO") NÃO devem receber a imagem de Saída Drenagem!
   const saidaDrenagemNegativeCases = [
     { sku: '8894', name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', brand: '' },
     { sku: '8895', name: 'MANGUEIRA SAIDA CORRUGADA 2,0M 3/4" BRANCA', brand: '' },
@@ -308,6 +310,88 @@ export function runProductImageSelfCheck(): boolean {
   }
   if (getProductImage(customImgSaida) !== 'https://exemplo.com/foto-especifica-drenagem.jpg') {
     throw new Error('Imagem própria do produto deve ter precedência sobre SAIDA_DRENAGEM_IMAGE')
+  }
+
+  // --- Validação da Linha Saída Corrugada Branca (17ª linha) ---
+  // Casos positivos reais do banco (SKUs 8894 e 8895) e variações de acentuação/case:
+  const saidaCorrugadaBrancaPositiveCases = [
+    { sku: '8894', name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', brand: '' },
+    { sku: '8895', name: 'MANGUEIRA SAIDA CORRUGADA 2,0M 3/4" BRANCA', brand: '' },
+    { sku: '9896', name: 'mangueira saida corrugada branca', brand: '' },
+    { sku: '9897', name: 'MANGUEIRA SAÍDA CORRUGADA BRANCA 3M', brand: 'IBIRÁ' },
+    { sku: '9898', name: 'MANGUEIRA SAÍDA DE MÁQUINA CORRUGADA BRANCA', brand: 'GENÉRICA' },
+    { sku: '9899', name: 'mangueira saída corrugada branca 1,5m', brand: 'KORAX' },
+  ]
+
+  for (const item of saidaCorrugadaBrancaPositiveCases) {
+    if (!isSaidaCorrugadaBranca(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isSaidaCorrugadaBranca`)
+    }
+    // Não pode casar com Saída Drenagem
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+    if (getProductImage(item) !== SAIDA_CORRUGADA_BRANCA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SAIDA_CORRUGADA_BRANCA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SAIDA_CORRUGADA_BRANCA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SAIDA_CORRUGADA_BRANCA_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre SAIDA_CORRUGADA_BRANCA_IMAGE
+  const customImgSaidaCorrugada = {
+    sku: '8894',
+    name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+    image: 'https://exemplo.com/foto-especifica-corrugada.jpg',
+  }
+  if (
+    getProductImage(customImgSaidaCorrugada) !== 'https://exemplo.com/foto-especifica-corrugada.jpg'
+  ) {
+    throw new Error(
+      'Imagem própria do produto deve ter precedência sobre SAIDA_CORRUGADA_BRANCA_IMAGE',
+    )
+  }
+
+  // Casos negativos cruciais para Saída Corrugada Branca:
+  // - Saída Drenagem (SKUs 8885 a 8893): mantém a foto própria de Saída Drenagem!
+  // - Saída Tanquinho (SKU 4523, SKU 4524): sem foto desta linha (retorna default)
+  // - Corrugada sem saída ou sem branca
+  // - Saída branca sem corrugada
+  const saidaCorrugadaBrancaNegativeCases = [
+    { sku: '8885', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '7813', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 28MM', brand: 'IBIRÁ' },
+    { sku: '8892', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL CURVO', brand: 'IBIRÁ' },
+    { sku: '4523', name: 'MANGUEIRA SAIDA 1,27M TANQUINHO', brand: '' },
+    { sku: '4524', name: 'MANGUEIRA SAIDA MAQUINA TANQUINHO 1,5M', brand: 'IBIRA' },
+    { sku: '9801', name: 'MANGUEIRA CORRUGADA BRANCA 3/4"', brand: '' }, // Sem saída
+    { sku: '9802', name: 'MANGUEIRA SAIDA CORRUGADA CINZA 2M', brand: '' }, // Sem branca
+    { sku: '9803', name: 'MANGUEIRA SAIDA TANQUINHO BRANCA', brand: '' }, // Sem corrugada
+    { sku: '9804', name: 'CONDUITE CORRUGADO BRANCO 3/4"', brand: 'TIGRE' }, // Sem saída
+    { sku: '9805', name: 'MANGUEIRA SAIDA DRENAGEM CORRUGADA BRANCA', brand: 'IBIRÁ' }, // Caso hipotético: Saída Drenagem prevalece por precedência!
+  ]
+
+  for (const item of saidaCorrugadaBrancaNegativeCases) {
+    if (item.sku === '9805') {
+      // Caso de sobreposição intencional: getProductImage deve priorizar SAIDA_DRENAGEM_IMAGE
+      if (getProductImage(item) !== SAIDA_DRENAGEM_IMAGE) {
+        throw new Error(
+          `Item ${item.name} deveria priorizar SAIDA_DRENAGEM_IMAGE sobre Saída Corrugada Branca`,
+        )
+      }
+    } else {
+      if (isSaidaCorrugadaBranca(item)) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaCorrugadaBranca`,
+        )
+      }
+      if (getProductImage(item) === SAIDA_CORRUGADA_BRANCA_IMAGE) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) NÃO deve retornar SAIDA_CORRUGADA_BRANCA_IMAGE`,
+        )
+      }
+    }
   }
 
   // --- Validação da Linha Sucção Laranja / Sucção Pesada ---
@@ -567,7 +651,7 @@ export function runProductImageSelfCheck(): boolean {
     }
   }
 
-  // Garantir que as 15 linhas anteriores continuam intactas e NÃO pegam VACUO_AR_CINZA_IMAGE
+  // Garantir que as 16 linhas anteriores continuam intactas e NÃO pegam SAIDA_CORRUGADA_BRANCA_IMAGE ou VACUO_AR_CINZA_IMAGE
   const priorLines = [
     {
       name: 'Forza Uno Tropic',
@@ -652,6 +736,15 @@ export function runProductImageSelfCheck(): boolean {
       },
       expectedImg: SUCCAO_LARANJA_IMAGE,
     },
+    {
+      name: 'Sucção Cinza / Vácuo Ar Cinza',
+      product: {
+        sku: '2210',
+        name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+        brand: 'IBIRÁ',
+      },
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -668,10 +761,15 @@ export function runProductImageSelfCheck(): boolean {
     if (res === SAIDA_DRENAGEM_IMAGE && line.name !== 'Saída Drenagem') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SAIDA_DRENAGEM_IMAGE`)
     }
+    if (res === SAIDA_CORRUGADA_BRANCA_IMAGE) {
+      throw new Error(
+        `Linha anterior ${line.name} indevidamente pegou SAIDA_CORRUGADA_BRANCA_IMAGE`,
+      )
+    }
     if (res === SUCCAO_LARANJA_IMAGE && line.name !== 'Sucção Laranja / Pesada') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SUCCAO_LARANJA_IMAGE`)
     }
-    if (res === VACUO_AR_CINZA_IMAGE) {
+    if (res === VACUO_AR_CINZA_IMAGE && line.name !== 'Sucção Cinza / Vácuo Ar Cinza') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou VACUO_AR_CINZA_IMAGE`)
     }
   }
