@@ -432,7 +432,15 @@ export function runProductImageSelfCheck(): boolean {
     { sku: '4715', name: 'MANGUEIRA VACUO AR 4" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
     { sku: '10018', name: 'MANGUEIRA VACUO AR 8" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
 
-    // Casos hipotéticos/sem a palavra "CINZA" explícita, mas com os modelos cinza (IVCL, KEL-SC, KV):
+    // Casos sem a palavra "CINZA" e sem código de modelo da linha cinza (produtos do banco vácuo ar padrão cinza):
+    // SKU 5022 ("MANGUEIRA VACUO AR 3/4"") - caso reportado pelo usuário
+    { sku: '5022', name: 'MANGUEIRA VACUO AR 3/4"', brand: '' },
+    // SKU 1599 ("MANGUEIRA VACUO AR 1.1/2"") - Kanaflex sem código de cor
+    { sku: '1599', name: 'MANGUEIRA VACUO AR 1.1/2"', brand: 'KANAFLEX' },
+    // Caso com acento sem cor explícita:
+    { sku: '9100', name: 'MANGUEIRA VÁCUO AR 2"', brand: '' },
+
+    // Casos com os modelos cinza (IVCL, KEL-SC, KV) sem a palavra "CINZA":
     { sku: '9101', name: 'MANGUEIRA VACUO AR 2" IVCL', brand: 'IBIRA' },
     { sku: '9102', name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SC', brand: 'KANAFLEX' },
     { sku: '9103', name: 'MANGUEIRA VACUO AR 3" KV REFORÇADA', brand: 'KANAFLEX' },
@@ -516,9 +524,30 @@ export function runProductImageSelfCheck(): boolean {
     { sku: '4108', name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', brand: 'CONTINENTAL' },
     { sku: '4109', name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', brand: 'CONTINENTAL' },
 
-    // 7) Sucções transparentes com espiral e atóxicas
+    // 7) Sucções transparentes com espiral e atóxicas (ISAL, KKM, KKE, ISAM, KA)
     { sku: '2212', name: 'MANGUEIRA SUCÇAO 1" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    {
+      sku: '2208',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    {
+      sku: '7305',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" KKE TRANSPARENTE C/ ESPIRAL VERDE',
+      brand: 'KANAFLEX',
+    },
+    {
+      sku: '1688',
+      name: 'MANGUEIRA SUCÇAO 2" KKM TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'KANAFLEX',
+    },
     { sku: '8449', name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '8448', name: 'MANGUEIRA SUCÇAO 1.1/2" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    {
+      sku: '8675',
+      name: 'MANGUEIRA SUCÇAO 1" KA ATOXICA TRANSPARENTE ESPIRAL BRANCO',
+      brand: 'KANAFLEX',
+    },
 
     // 8) Produtos com CINZA mas SEM sucção nem vácuo ar (devem ir para suas fotos ou default)
     // Ex: Saída Drenagem cinza (sku 8885)

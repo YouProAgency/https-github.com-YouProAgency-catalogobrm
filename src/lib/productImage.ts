@@ -40,6 +40,7 @@ if (import.meta.env.DEV) {
 }
 
 export interface ProductImageSubject {
+  sku?: string | number | null
   name?: string | null
   description?: string | null
   shortDescription?: string | null
@@ -335,12 +336,18 @@ export function isSuccaoLaranja(product: ProductImageSubject | null | undefined)
  * Checa se o produto pertence à linha Sucção Cinza / Vácuo Ar Cinza.
  * Regra: analisa o texto consolidado do produto (nome + descrições):
  * - Contém "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" (tolerante a acentos e cedilha, \b) OU "VACUO AR" / "VÁCUO AR"
- * - E simultaneamente um indicador de cinza:
+ * - E simultaneamente um indicador da linha cinza:
  *   a) A palavra "CINZA" (\bcinza\b)
  *   b) Ou códigos de modelo conhecidos da linha cinza: IVCL, KEL-SC ou KV
+ *   c) Ou SKUs confirmados da linha cinza sem modelo/cor indicada (ex.: SKU 5022 bitola 3/4", SKU 1599 bitola 1.1/2")
+ *   d) Ou ausência de qualquer cor / código de modelo conflitante conhecido:
+ *      (exclui azul, preta/preto, prata, verde, transparente/translúcida, cobreada, atóxica/arame,
+ *       códigos KEV, KEL-S, KEL-SP, KPU-BOR, SVE, IVPU, ISAL, KKM, KKE, ISAM, KA, ISLP, etc.)
  * Exclusões estritas (NÃO deve capturar):
  * - Sucção Laranja / Pesada (já capturada antes pela precedência isSuccaoLaranja)
  * - Vácuo ar ou sucção em outras cores explicitadas no nome: azul, preta/preto, prata, verde, etc.
+ * - Sucção transparente com espiral: ISAL, KKM, KKE
+ * - Sucção atóxica com arame/espiral: ISAM, KA
  * - Outros códigos de cor/modelo: KEV (azul), KEL-S (azul), KEL-SP (preta), KPU-BOR (preta), SVE (prata Continental), IVPU (transparente cobreada)
  */
 export function isSuccaoCinzaOuVacuoArCinza(
@@ -362,20 +369,50 @@ export function isSuccaoCinzaOuVacuoArCinza(
     return false
   }
 
-  // Exclusões de cores ou modelos conflitantes (azul, preta, prata, verde, transparente, cobreada, etc.)
-  // Note: KEL-SC tem SC, mas KEL-S ou KEL-SP não podem ser pegos. KPU-BOR, SVE, IVPU, KEV também não.
-  if (/\b(?:azul|pret[ao]|prata|verde|transparent|cobread[ao])\b/i.test(text)) {
+  // Exclusões de cores ou descritores conflitantes (azul, preta, prata, verde, transparente, cobreada, atóxica, arame, etc.)
+  if (
+    /\b(?:azul|pret[ao]|prata|verde|transparente?|transl[uú]cid[ao]|cobread[ao]|at[oó]xic[ao]|arame)\b/i.test(
+      text,
+    )
+  ) {
     return false
   }
-  if (/\b(?:kev|kel-s|kel-sp|kpu-bor|sve|ivpu)\b/i.test(text)) {
+
+  // Exclusões de modelos/séries de outras linhas conhecidas:
+  // - KEV, KEL-S (azul Kanaflex)
+  // - KEL-SP, KPU-BOR (preta Kanaflex)
+  // - SVE (prata Continental)
+  // - IVPU (transparente cobreada Ibirá)
+  // - ISAL, KKM, KKE (sucção transparente com espiral)
+  // - ISAM, KA (sucção atóxica)
+  // - ISLP (sucção laranja pesada)
+  if (/\b(?:kev|kel-s|kel-sp|kpu-bor|sve|ivpu|isal|kkm|kke|isam|ka|islp)\b/i.test(text)) {
     return false
+  }
+
+  // SKU confirmado explicitamente (ex: SKU 5022 "MANGUEIRA VACUO AR 3/4"", SKU 1599 "MANGUEIRA VACUO AR 1.1/2"")
+  const productSku = product.sku != null ? String(product.sku).trim() : ''
+  if (productSku === '5022' || productSku === '1599') {
+    return true
   }
 
   // Indicador de cinza: palavra CINZA literal ou códigos de modelo IVCL, KEL-SC, KV
   const hasCinzaWord = /\bcinza\b/i.test(text)
   const hasCinzaModel = /\b(?:ivcl|kel-sc|kv)\b/i.test(text)
 
-  return hasCinzaWord || hasCinzaModel
+  // Se tem a palavra cinza ou modelo cinza
+  if (hasCinzaWord || hasCinzaModel) {
+    return true
+  }
+
+  // Para produtos de "VÁCUO AR" / "VACUO AR":
+  // Se não tem nenhuma cor ou modelo de outra linha indicado (as exclusões acima já removeram azul, preta, prata, etc.),
+  // trata-se da linha padrão de vácuo ar cinza (a linha estándar do mercado para vácuo ar vinílico)
+  if (hasVacuoAr) {
+    return true
+  }
+
+  return false
 }
 
 /**
