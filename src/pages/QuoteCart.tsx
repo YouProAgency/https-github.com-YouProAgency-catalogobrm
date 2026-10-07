@@ -199,9 +199,9 @@ export default function QuoteCart() {
                       <span className="text-xs text-primary font-mono font-bold tracking-widest">
                         SKU: {item.product.sku}
                       </span>
-                      {item.product.brand && (
-                        <span className="text-[11px] text-muted-foreground">
-                          • Marca: {item.product.brand}
+                      {(item.product.brand || '').trim() && (
+                        <span className="inline-flex items-center text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-sm bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
+                          {(item.product.brand || '').trim()}
                         </span>
                       )}
                     </div>

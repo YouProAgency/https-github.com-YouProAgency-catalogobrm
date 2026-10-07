@@ -17,6 +17,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
   const displayImage = getProductImage(product)
   const hasValidUnit = isValidDisplayUnit(product.unit, product.name)
+  const brandName = (product.brand || '').trim()
 
   return (
     <Card className="overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300 border-border bg-white rounded-sm hover:-translate-y-1">
@@ -39,17 +40,17 @@ export function ProductCard({ product }: ProductCardProps) {
         </Link>
       </div>
       <CardContent className="p-5 flex-1 flex flex-col">
-        <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center justify-between gap-2 mb-2 min-h-[22px]">
           <span className="text-[10px] text-primary font-bold uppercase tracking-widest font-mono">
             {product.sku}
           </span>
-          {product.brand && (
-            <Badge
-              variant="outline"
-              className="text-[10px] uppercase font-bold py-0 px-1.5 border-secondary/20 text-secondary"
+          {brandName && (
+            <span
+              title={`Marca: ${brandName}`}
+              className="inline-flex items-center text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-sm bg-slate-100 text-slate-800 border border-slate-300 shadow-xs max-w-[140px] truncate"
             >
-              {product.brand}
-            </Badge>
+              {brandName}
+            </span>
           )}
         </div>
         <Link to={`/produto/${product.id}`} className="group-hover:text-primary transition-colors">
@@ -83,7 +84,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
         </div>
-        {product.shortDescription && !product.brand && (
+        {product.shortDescription && !brandName && (
           <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
             {product.shortDescription}
           </p>

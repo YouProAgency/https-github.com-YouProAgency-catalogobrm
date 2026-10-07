@@ -177,9 +177,9 @@ export default function ProductDetails() {
             <span className="text-sm text-secondary font-mono bg-muted px-2.5 py-1 rounded-sm font-bold border border-border">
               SKU: {product.sku}
             </span>
-            {product.brand && (
-              <span className="text-sm font-bold text-secondary bg-secondary/10 px-2.5 py-1 rounded-sm border border-secondary/20">
-                Marca: {product.brand}
+            {(product.brand || '').trim() && (
+              <span className="inline-flex items-center text-xs uppercase font-bold tracking-wider px-2.5 py-1 rounded-sm bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
+                Marca: {(product.brand || '').trim()}
               </span>
             )}
             {isValidDisplayUnit(product.unit, product.name) && (
