@@ -13,6 +13,7 @@ import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
+import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -31,6 +32,7 @@ export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
+export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -330,6 +332,53 @@ export function isSuccaoLaranja(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto pertence à linha Sucção Cinza / Vácuo Ar Cinza.
+ * Regra: analisa o texto consolidado do produto (nome + descrições):
+ * - Contém "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" (tolerante a acentos e cedilha, \b) OU "VACUO AR" / "VÁCUO AR"
+ * - E simultaneamente um indicador de cinza:
+ *   a) A palavra "CINZA" (\bcinza\b)
+ *   b) Ou códigos de modelo conhecidos da linha cinza: IVCL, KEL-SC ou KV
+ * Exclusões estritas (NÃO deve capturar):
+ * - Sucção Laranja / Pesada (já capturada antes pela precedência isSuccaoLaranja)
+ * - Vácuo ar ou sucção em outras cores explicitadas no nome: azul, preta/preto, prata, verde, etc.
+ * - Outros códigos de cor/modelo: KEV (azul), KEL-S (azul), KEL-SP (preta), KPU-BOR (preta), SVE (prata Continental), IVPU (transparente cobreada)
+ */
+export function isSuccaoCinzaOuVacuoArCinza(
+  product: ProductImageSubject | null | undefined,
+): boolean {
+  if (!product) return false
+
+  // Se já for sucção laranja/pesada, não pertence à linha cinza
+  if (isSuccaoLaranja(product)) {
+    return false
+  }
+
+  const text = getSubjectCombinedText(product)
+
+  // Deve ter termo de sucção ou vácuo ar
+  const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/i.test(text)
+  const hasVacuoAr = /\bv[aá]cuo\s+ar\b/i.test(text)
+  if (!hasSuccao && !hasVacuoAr) {
+    return false
+  }
+
+  // Exclusões de cores ou modelos conflitantes (azul, preta, prata, verde, transparente, cobreada, etc.)
+  // Note: KEL-SC tem SC, mas KEL-S ou KEL-SP não podem ser pegos. KPU-BOR, SVE, IVPU, KEV também não.
+  if (/\b(?:azul|pret[ao]|prata|verde|transparent|cobread[ao])\b/i.test(text)) {
+    return false
+  }
+  if (/\b(?:kev|kel-s|kel-sp|kpu-bor|sve|ivpu)\b/i.test(text)) {
+    return false
+  }
+
+  // Indicador de cinza: palavra CINZA literal ou códigos de modelo IVCL, KEL-SC, KV
+  const hasCinzaWord = /\bcinza\b/i.test(text)
+  const hasCinzaModel = /\b(?:ivcl|kel-sc|kv)\b/i.test(text)
+
+  return hasCinzaWord || hasCinzaModel
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -424,6 +473,10 @@ export function getProductImage(
 
   if (isSuccaoLaranja(product)) {
     return SUCCAO_LARANJA_IMAGE
+  }
+
+  if (isSuccaoCinzaOuVacuoArCinza(product)) {
+    return VACUO_AR_CINZA_IMAGE
   }
 
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
@@ -529,6 +582,10 @@ export function getProductImages(
 
   if (isSuccaoLaranja(product)) {
     return [SUCCAO_LARANJA_IMAGE]
+  }
+
+  if (isSuccaoCinzaOuVacuoArCinza(product)) {
+    return [VACUO_AR_CINZA_IMAGE]
   }
 
   return [fallbackUrl]

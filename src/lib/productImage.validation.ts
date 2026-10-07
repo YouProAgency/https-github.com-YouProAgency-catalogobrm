@@ -6,6 +6,7 @@ import {
   isCristal,
   isSaidaDrenagem,
   isSuccaoLaranja,
+  isSuccaoCinzaOuVacuoArCinza,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -23,6 +24,7 @@ import {
   CRISTAL_IMAGE,
   SAIDA_DRENAGEM_IMAGE,
   SUCCAO_LARANJA_IMAGE,
+  VACUO_AR_CINZA_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
@@ -399,7 +401,144 @@ export function runProductImageSelfCheck(): boolean {
     throw new Error('Imagem própria do produto deve ter precedência sobre SUCCAO_LARANJA_IMAGE')
   }
 
-  // Garantir que as 14 linhas anteriores continuam intactas e NÃO pegam SUCCAO_LARANJA_IMAGE
+  // --- Validação da Linha Sucção Cinza / Vácuo Ar Cinza (16ª linha fotografada) ---
+  // Casos positivos reais do banco cobrindo IVCL, KEL-SC, KV e variações com "CINZA" e sem acento:
+  const vacuoArCinzaPositiveCases = [
+    // Ibirá IVCL Cinza:
+    { sku: '2210', name: 'MANGUEIRA VACUO AR 1" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '2209', name: 'MANGUEIRA VACUO AR 1.1/4" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '2751', name: 'MANGUEIRA VACUO AR 1.1/2" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '2752', name: 'MANGUEIRA VACUO AR 2" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '5533', name: 'MANGUEIRA VACUO AR 2.1/2" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '7519', name: 'MANGUEIRA VACUO AR 3" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '3040', name: 'MANGUEIRA VACUO AR 4" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '7031', name: 'MANGUEIRA VACUO AR 5" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '5240', name: 'MANGUEIRA VACUO AR 6" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '8649', name: 'MANGUEIRA VACUO AR 8" IVCL CINZA', brand: 'IBIRÁ' },
+
+    // Kanaflex KEL-SC Cinza:
+    { sku: '1624', name: 'MANGUEIRA VACUO AR 1" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '2748', name: 'MANGUEIRA VACUO AR 1.1/4" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '4278', name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '1880', name: 'MANGUEIRA VACUO AR 2" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '5241', name: 'MANGUEIRA VACUO AR 2.1/2" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '2753', name: 'MANGUEIRA VACUO AR 3" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '2420', name: 'MANGUEIRA VACUO AR 4" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '4504', name: 'MANGUEIRA VACUO AR 6" KEL-SC CINZA', brand: 'KANAFLEX' },
+
+    // Kanaflex KV Cinza:
+    { sku: '4003', name: 'MANGUEIRA VACUO AR 1.3/4" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '5090', name: 'MANGUEIRA VACUO AR 2" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '4715', name: 'MANGUEIRA VACUO AR 4" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '10018', name: 'MANGUEIRA VACUO AR 8" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
+
+    // Casos hipotéticos/sem a palavra "CINZA" explícita, mas com os modelos cinza (IVCL, KEL-SC, KV):
+    { sku: '9101', name: 'MANGUEIRA VACUO AR 2" IVCL', brand: 'IBIRA' },
+    { sku: '9102', name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SC', brand: 'KANAFLEX' },
+    { sku: '9103', name: 'MANGUEIRA VACUO AR 3" KV REFORÇADA', brand: 'KANAFLEX' },
+
+    // Variações de sucção cinza (SUCÇÃO, SUCCÃO, SUCÇAO, SUCCAO + CINZA):
+    { sku: '9104', name: 'MANGUEIRA SUCÇÃO CINZA 2"', brand: '' },
+    { sku: '9105', name: 'MANGUEIRA SUCÇAO 3" CINZA', brand: 'IBIRÁ' },
+    { sku: '9106', name: 'MANGUEIRA SUCCAO 2" CINZA LEVE', brand: 'KANAFLEX' },
+    { sku: '9107', name: 'MANGUEIRA VÁCUO AR CINZA 1.1/2"', brand: '' },
+    { sku: '9108', name: 'mangueira vacuo ar cinza 2"', brand: '' },
+  ]
+
+  for (const item of vacuoArCinzaPositiveCases) {
+    if (!isSuccaoCinzaOuVacuoArCinza(item)) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) deveria casar com isSuccaoCinzaOuVacuoArCinza`,
+      )
+    }
+    if (getProductImage(item) !== VACUO_AR_CINZA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou VACUO_AR_CINZA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== VACUO_AR_CINZA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [VACUO_AR_CINZA_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre VACUO_AR_CINZA_IMAGE
+  const customImgVacuo = {
+    sku: '2751',
+    name: 'MANGUEIRA VACUO AR 1.1/2" IVCL CINZA',
+    image: 'https://exemplo.com/foto-especifica-vacuo-cinza.jpg',
+  }
+  if (getProductImage(customImgVacuo) !== 'https://exemplo.com/foto-especifica-vacuo-cinza.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre VACUO_AR_CINZA_IMAGE')
+  }
+
+  // Casos negativos estritos para Sucção Cinza / Vácuo Ar Cinza:
+  const vacuoArCinzaNegativeCases = [
+    // 1) Sucção Laranja / Pesada (devem ir para SUCCAO_LARANJA_IMAGE, nunca VACUO_AR_CINZA_IMAGE)
+    { sku: '2745', name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '2383', name: 'MANGUEIRA SUCÇÃO LARANJA 3"', brand: '' },
+    { sku: '9502', name: 'MANGUEIRA SUCÇÃO PESADA', brand: 'KANAFLEX' },
+
+    // 2) Vácuo Ar Azul (KEV, KEL-S)
+    { sku: '9023', name: 'MANGUEIRA VACUO AR 12" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '8093', name: 'MANGUEIRA VACUO AR 2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '3064', name: 'MANGUEIRA VACUO AR 2.1/2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '2977', name: 'MANGUEIRA VACUO AR 2.1/2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '5177', name: 'MANGUEIRA VACUO AR 4" KEL-S AZUL ESCURO', brand: 'KANAFLEX' },
+    { sku: '2717', name: 'MANGUEIRA VACUO AR 5" KEL-S AZUL ESCURO', brand: 'KANAFLEX' },
+
+    // 3) Sucção Azul
+    { sku: '2747', name: 'MANGUEIRA SUCÇAO 3" AZUL', brand: 'KANAFLEX' },
+
+    // 4) Vácuo Ar Preta (KEL-SP, KPU-BOR)
+    { sku: '6293', name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA', brand: 'KANAFLEX' },
+    { sku: '8483', name: 'MANGUEIRA VACUO AR 1.1/4" KEL-SP PRETA', brand: 'KANAFLEX' },
+    { sku: '5596', name: 'MANGUEIRA VACUO AR 2" KEL-SP PRETA', brand: 'KANAFLEX' },
+    { sku: '9044', name: 'MANGUEIRA VACUO AR 4" KEL-SP PRETA', brand: 'KANAFLEX' },
+    { sku: '3168', name: 'MANGUEIRA VACUO AR 4" KPU-BOR PRETA', brand: 'KANAFLEX' },
+    { sku: '6281', name: 'MANGUEIRA VACUO AR 4" KPU-BOR PRETA', brand: 'KANAFLEX' },
+
+    // 5) Vácuo Ar Transparente Cobreada (IVPU)
+    {
+      sku: '9276',
+      name: 'MANGUEIRA VACUO AR 1.1/2" IVPU PU-C TRANSPARENTE COBREADA',
+      brand: 'IBIRÁ',
+    },
+    { sku: '9974', name: 'MANGUEIRA VACUO AR 2" IVPU PU-C TRANSPARENTE COBREADA', brand: 'IBIRÁ' },
+    { sku: '9227', name: 'MANGUEIRA VACUO AR 3" IVPU PU-C TRANSPARENTE COBREADA', brand: 'IBIRÁ' },
+    {
+      sku: '2846',
+      name: 'MANGUEIRA VACUO AR 2.1/2" IVPU PU-C TRANSPARENTE COBREADA',
+      brand: 'IBIRÁ',
+    },
+    { sku: '9071', name: 'MANGUEIRA VACUO AR 4" IVPU PU-C TRANSPARENTE COBREADA', brand: 'IBIRÁ' },
+    { sku: '2963', name: 'MANGUEIRA VACUO AR 5" IVPU PU-C TRANSPARENTE COBREADA', brand: 'IBIRÁ' },
+
+    // 6) Vácuo Ar Prata (SVE Continental)
+    { sku: '4108', name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', brand: 'CONTINENTAL' },
+    { sku: '4109', name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', brand: 'CONTINENTAL' },
+
+    // 7) Sucções transparentes com espiral e atóxicas
+    { sku: '2212', name: 'MANGUEIRA SUCÇAO 1" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    { sku: '8449', name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+
+    // 8) Produtos com CINZA mas SEM sucção nem vácuo ar (devem ir para suas fotos ou default)
+    // Ex: Saída Drenagem cinza (sku 8885)
+    { sku: '8885', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    // Ex: Mangueira entrada cinza (sku 4711)
+    { sku: '4711', name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS', brand: '' },
+  ]
+
+  for (const item of vacuoArCinzaNegativeCases) {
+    if (isSuccaoCinzaOuVacuoArCinza(item)) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoCinzaOuVacuoArCinza`,
+      )
+    }
+    if (getProductImage(item) === VACUO_AR_CINZA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar VACUO_AR_CINZA_IMAGE`)
+    }
+  }
+
+  // Garantir que as 15 linhas anteriores continuam intactas e NÃO pegam VACUO_AR_CINZA_IMAGE
   const priorLines = [
     {
       name: 'Forza Uno Tropic',
@@ -475,6 +614,15 @@ export function runProductImageSelfCheck(): boolean {
       },
       expectedImg: SAIDA_DRENAGEM_IMAGE,
     },
+    {
+      name: 'Sucção Laranja / Pesada',
+      product: {
+        sku: '2745',
+        name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+        brand: 'IBIRÁ',
+      },
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -491,8 +639,11 @@ export function runProductImageSelfCheck(): boolean {
     if (res === SAIDA_DRENAGEM_IMAGE && line.name !== 'Saída Drenagem') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SAIDA_DRENAGEM_IMAGE`)
     }
-    if (res === SUCCAO_LARANJA_IMAGE) {
+    if (res === SUCCAO_LARANJA_IMAGE && line.name !== 'Sucção Laranja / Pesada') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SUCCAO_LARANJA_IMAGE`)
+    }
+    if (res === VACUO_AR_CINZA_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou VACUO_AR_CINZA_IMAGE`)
     }
   }
 
