@@ -12,6 +12,7 @@ import cristalTrancadaImg from '@/assets/cristaltrancada-ebff7.png'
 import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
+import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -29,6 +30,7 @@ export const CRISTAL_IMAGE = cristalImg
 export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
+export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -312,6 +314,22 @@ export function isSaidaDrenagem(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Sucção Laranja / Sucção Pesada.
+ * Regra: analisa o texto consolidado do produto (nome + descrições) e casa quando
+ * houver a palavra "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" (tolerante a acentos e cedilha, case-insensitive)
+ * E simultaneamente ("LARANJA" OU "PESADA").
+ * NÃO casam: sucções transparentes com espiral (azul/verde), sucções atóxicas com arame,
+ * ou qualquer produto sem "sucção".
+ */
+export function isSuccaoLaranja(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/i.test(text)
+  const hasLaranjaOuPesada = /\b(?:laranja|pesada)\b/i.test(text)
+  return hasSuccao && hasLaranjaOuPesada
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -402,6 +420,10 @@ export function getProductImage(
 
   if (isSaidaDrenagem(product)) {
     return SAIDA_DRENAGEM_IMAGE
+  }
+
+  if (isSuccaoLaranja(product)) {
+    return SUCCAO_LARANJA_IMAGE
   }
 
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
@@ -503,6 +525,10 @@ export function getProductImages(
 
   if (isSaidaDrenagem(product)) {
     return [SAIDA_DRENAGEM_IMAGE]
+  }
+
+  if (isSuccaoLaranja(product)) {
+    return [SUCCAO_LARANJA_IMAGE]
   }
 
   return [fallbackUrl]

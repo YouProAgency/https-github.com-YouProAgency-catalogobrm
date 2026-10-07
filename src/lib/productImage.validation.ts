@@ -5,6 +5,7 @@ import {
   isCristalTrancada,
   isCristal,
   isSaidaDrenagem,
+  isSuccaoLaranja,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -21,12 +22,14 @@ import {
   CRISTAL_TRANCADA_IMAGE,
   CRISTAL_IMAGE,
   SAIDA_DRENAGEM_IMAGE,
+  SUCCAO_LARANJA_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
- * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem e proteção de precedência das 13 linhas anteriores.
+ * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem, Sucção Laranja / Sucção Pesada
+ * e proteção de precedência das 14 linhas anteriores.
  */
 export function runProductImageSelfCheck(): boolean {
   // Testes de marca
@@ -305,7 +308,98 @@ export function runProductImageSelfCheck(): boolean {
     throw new Error('Imagem própria do produto deve ter precedência sobre SAIDA_DRENAGEM_IMAGE')
   }
 
-  // Garantir que as 12 linhas anteriores continuam intactas e NÃO pegam CRISTAL_TRANCADA_IMAGE nem CRISTAL_IMAGE
+  // --- Validação da Linha Sucção Laranja / Sucção Pesada ---
+  // Casos positivos reais do banco e variações (tolerância a acentuação e cedilha: SUCÇÃO, SUCCÃO, SUCÇAO, SUCCAO):
+  const succaoLaranjaPositiveCases = [
+    { sku: '2745', name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '2746', name: 'MANGUEIRA SUCÇAO 2.1/2" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '9072', name: 'MANGUEIRA SUCÇAO 4" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '8212', name: 'MANGUEIRA SUCÇAO 6" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '2383', name: 'MANGUEIRA SUCÇÃO LARANJA 3"', brand: '' },
+    // Variações de grafia e casos com PESADA:
+    { sku: '9501', name: 'MANGUEIRA SUCÇAO 4 BAR ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '9502', name: 'MANGUEIRA SUCÇÃO PESADA', brand: 'KANAFLEX' },
+    { sku: '9503', name: 'MANGUEIRA SUCÇÃO PESADA LARANJA', brand: 'IBIRA' },
+    { sku: '9504', name: 'mangueira sucção laranja 2"', brand: '' },
+    { sku: '9505', name: 'MANGUEIRA SUCCAO LARANJA 3"', brand: 'IBIRÁ' },
+    { sku: '9506', name: 'MANGUEIRA SUCCÃO PESADA 4"', brand: '' },
+  ]
+
+  for (const item of succaoLaranjaPositiveCases) {
+    if (!isSuccaoLaranja(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isSuccaoLaranja`)
+    }
+    if (getProductImage(item) !== SUCCAO_LARANJA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SUCCAO_LARANJA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SUCCAO_LARANJA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SUCCAO_LARANJA_IMAGE]`)
+    }
+  }
+
+  // Casos negativos para Sucção Laranja:
+  // 1) Sucções transparentes com espiral azul/verde do banco (SKUs 2212, 2208, 7305, 1688, 6763, etc.)
+  // 2) Sucções atóxicas com arame metal (SKUs 8449, 8448, 8679, 7815)
+  // 3) Produtos com LARANJA mas SEM SUCÇÃO (SKU 6285 Balflex R7 laranja, SKU 1335 chata flat laranja, SKU 3075 jardim laranja)
+  // 4) Mangueiras genéricas sem sucção nem laranja/pesada
+  const succaoLaranjaNegativeCases = [
+    { sku: '2212', name: 'MANGUEIRA SUCÇAO 1" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    {
+      sku: '2208',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    {
+      sku: '7305',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" KKE TRANSPARENTE C/ ESPIRAL VERDE',
+      brand: 'KANAFLEX',
+    },
+    {
+      sku: '1688',
+      name: 'MANGUEIRA SUCÇAO 2" KKM TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'KANAFLEX',
+    },
+    { sku: '8449', name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '8448', name: 'MANGUEIRA SUCÇAO 1.1/2" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    {
+      sku: '8675',
+      name: 'MANGUEIRA SUCÇAO 1" KA ATOXICA TRANSPARENTE ESPIRAL BRANCO',
+      brand: 'KANAFLEX',
+    },
+    { sku: '2747', name: 'MANGUEIRA SUCÇAO 3" AZUL', brand: 'KANAFLEX' },
+    { sku: '6285', name: 'MANGUEIRA R7 1/4" NON CONDUTIVE LARANJA', brand: 'BALFLEX' },
+    {
+      sku: '1335',
+      name: 'MANGUEIRA CHATA FLAT 2" KORFLEX LARANJA 5 BAR CONDUÇAO DE AGUA',
+      brand: 'KORAX',
+    },
+    { sku: '3075', name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 LARANJA/ROSA', brand: 'SUNFLEX' },
+    { sku: '2891', name: 'MANGUEIRA FLEXIVEL 2" PVC LARANJA / TRANSPARENTE', brand: 'KANAFLEX' },
+  ]
+
+  for (const item of succaoLaranjaNegativeCases) {
+    if (isSuccaoLaranja(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoLaranja`)
+    }
+    if (getProductImage(item) === SUCCAO_LARANJA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SUCCAO_LARANJA_IMAGE`)
+    }
+  }
+
+  // Precedência de imagem própria do produto sobre SUCCAO_LARANJA_IMAGE
+  const customImgSuccao = {
+    sku: '2745',
+    name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+    image: 'https://exemplo.com/foto-especifica-succao-laranja.jpg',
+  }
+  if (
+    getProductImage(customImgSuccao) !== 'https://exemplo.com/foto-especifica-succao-laranja.jpg'
+  ) {
+    throw new Error('Imagem própria do produto deve ter precedência sobre SUCCAO_LARANJA_IMAGE')
+  }
+
+  // Garantir que as 14 linhas anteriores continuam intactas e NÃO pegam SUCCAO_LARANJA_IMAGE
   const priorLines = [
     {
       name: 'Forza Uno Tropic',
@@ -372,6 +466,15 @@ export function runProductImageSelfCheck(): boolean {
       product: { sku: '6980', name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS', brand: 'IBIRA' },
       expectedImg: CRISTAL_IMAGE,
     },
+    {
+      name: 'Saída Drenagem',
+      product: {
+        sku: '8885',
+        name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+        brand: 'IBIRÁ',
+      },
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -379,14 +482,17 @@ export function runProductImageSelfCheck(): boolean {
     if (res !== line.expectedImg) {
       throw new Error(`Linha anterior ${line.name} retornou imagem errada: ${res}`)
     }
-    if (res === CRISTAL_IMAGE) {
+    if (res === CRISTAL_IMAGE && line.name !== 'Cristal') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_IMAGE`)
     }
     if (res === CRISTAL_TRANCADA_IMAGE && line.name !== 'Cristal Trançada') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_TRANCADA_IMAGE`)
     }
-    if (res === SAIDA_DRENAGEM_IMAGE) {
+    if (res === SAIDA_DRENAGEM_IMAGE && line.name !== 'Saída Drenagem') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SAIDA_DRENAGEM_IMAGE`)
+    }
+    if (res === SUCCAO_LARANJA_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou SUCCAO_LARANJA_IMAGE`)
     }
   }
 
