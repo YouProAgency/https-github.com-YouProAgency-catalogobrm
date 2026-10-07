@@ -11,6 +11,7 @@ import cristalImg from '@/assets/cristallisa-938ec.png'
 import cristalTrancadaImg from '@/assets/cristaltrancada-ebff7.png'
 import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
+import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -27,6 +28,7 @@ export const CRISTAL_TRANCADA_IMAGE = cristalTrancadaImg
 export const CRISTAL_IMAGE = cristalImg
 export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
+export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -295,6 +297,21 @@ export function isCristal(product: ProductImageSubject | null | undefined): bool
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Saída Drenagem.
+ * Regra: exige a presença simultânea das palavras "SAÍDA" / "SAIDA" E "DRENAGEM"
+ * no texto consolidado do produto (nome + descrições), case-insensitive e tolerante a acentuação.
+ * SEM restrição de marca (cobre Ibirá, sem marca ou outros fabricantes).
+ * Não deve capturar produtos de saída corrugada ou tanquinho que não tenham "DRENAGEM".
+ */
+export function isSaidaDrenagem(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  const hasSaida = /\bsa[ií]da\b/i.test(text)
+  const hasDrenagem = /\bdrenagem\b/i.test(text)
+  return hasSaida && hasDrenagem
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -310,7 +327,8 @@ export function isCristal(product: ProductImageSubject | null | undefined): bool
  * 12. Se for da linha Blindada Gás FG, retorna a imagem oficial anexada (BLINDADA_GAS_FG_IMAGE)
  * 13. Se for da linha Cristal Trançada, retorna a imagem oficial anexada (CRISTAL_TRANCADA_IMAGE) — precedência sobre Cristal genérica
  * 14. Se for da linha Cristal, retorna a imagem oficial anexada (CRISTAL_IMAGE)
- * 15. Fallback: placeholder genérico de produto
+ * 15. Se for da linha Saída Drenagem, retorna a imagem oficial anexada (SAIDA_DRENAGEM_IMAGE)
+ * 16. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -382,6 +400,10 @@ export function getProductImage(
     return CRISTAL_IMAGE
   }
 
+  if (isSaidaDrenagem(product)) {
+    return SAIDA_DRENAGEM_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -406,6 +428,7 @@ export function getProductImage(
  * - Se for Blindada Gás FG, retorna [BLINDADA_GAS_FG_IMAGE].
  * - Se for Cristal Trançada, retorna [CRISTAL_TRANCADA_IMAGE].
  * - Se for Cristal, retorna [CRISTAL_IMAGE].
+ * - Se for Saída Drenagem, retorna [SAIDA_DRENAGEM_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -476,6 +499,10 @@ export function getProductImages(
 
   if (isCristal(product)) {
     return [CRISTAL_IMAGE]
+  }
+
+  if (isSaidaDrenagem(product)) {
+    return [SAIDA_DRENAGEM_IMAGE]
   }
 
   return [fallbackUrl]

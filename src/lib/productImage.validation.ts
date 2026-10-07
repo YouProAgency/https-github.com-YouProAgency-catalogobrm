@@ -4,6 +4,7 @@ import {
   isKoraxKobra2,
   isCristalTrancada,
   isCristal,
+  isSaidaDrenagem,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -19,12 +20,13 @@ import {
   KORAX_KOBRA2_IMAGE,
   CRISTAL_TRANCADA_IMAGE,
   CRISTAL_IMAGE,
+  SAIDA_DRENAGEM_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
- * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal e proteção de precedência das 12 linhas anteriores.
+ * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem e proteção de precedência das 13 linhas anteriores.
  */
 export function runProductImageSelfCheck(): boolean {
   // Testes de marca
@@ -237,6 +239,70 @@ export function runProductImageSelfCheck(): boolean {
     if (isCristal(item)) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristal`)
     }
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+  }
+
+  // --- Validação da Linha Saída Drenagem ---
+  // Casos positivos reais do banco e variações (com e sem acento, case-insensitive, com e sem marca):
+  const saidaDrenagemPositiveCases = [
+    { sku: '8885', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '7813', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 28MM', brand: 'IBIRÁ' },
+    { sku: '8887', name: 'MANGUEIRA SAIDA DRENAGEM 1,80M CINZA BOCAL RETO 28MM', brand: 'IBIRÁ' },
+    { sku: '8892', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL CURVO', brand: 'IBIRÁ' },
+    { sku: '8886', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '8890', name: 'MANGUEIRA SAIDA DRENAGEM 3,00M CINZA BOCAL CURVO', brand: 'IBIRÁ' },
+    { sku: '8891', name: 'MANGUEIRA SAIDA DRENAGEM 1,60M CINZA BOCAL CURVO 21MM', brand: '' },
+    { sku: '8893', name: 'MANGUEIRA SAIDA DRENAGEM 1,85M CINZA BOCAL CURVO 28MM', brand: '' },
+    { sku: '8888', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL RETO 29MM', brand: '' },
+    { sku: '8889', name: 'MANGUEIRA SAIDA DRENAGEM 2,50M CINZA BOCAL RETO 29MM', brand: '' },
+    // Variações com acento (SAÍDA), minúsculo e formatos alternativos:
+    { sku: '8896', name: 'MANGUEIRA SAÍDA DRENAGEM 2M MAQUINA DE LAVAR', brand: 'IBIRÁ' },
+    { sku: '8897', name: 'mangueira saida drenagem 1,5m cinza', brand: '' },
+    { sku: '8898', name: 'mangueira saída drenagem bocal curvo', brand: 'GENERICA' },
+  ]
+
+  for (const item of saidaDrenagemPositiveCases) {
+    if (!isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isSaidaDrenagem`)
+    }
+    if (getProductImage(item) !== SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SAIDA_DRENAGEM_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SAIDA_DRENAGEM_IMAGE]`)
+    }
+  }
+
+  // Casos negativos cruciais para Saída Drenagem:
+  // SKUs 8894, 8895 ("MANGUEIRA SAIDA CORRUGADA") e SKU 4523 ("MANGUEIRA SAIDA TANQUINHO") NÃO devem receber a imagem!
+  const saidaDrenagemNegativeCases = [
+    { sku: '8894', name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', brand: '' },
+    { sku: '8895', name: 'MANGUEIRA SAIDA CORRUGADA 2,0M 3/4" BRANCA', brand: '' },
+    { sku: '4523', name: 'MANGUEIRA SAIDA 1,27M TANQUINHO', brand: '' },
+    { sku: '4524', name: 'MANGUEIRA SAIDA MAQUINA TANQUINHO 1,5M', brand: 'IBIRA' },
+    { sku: '4525', name: 'TUBO DRENAGEM PEAD CORRUGADO 100MM', brand: 'TIGRE' }, // Drenagem SEM saída
+  ]
+
+  for (const item of saidaDrenagemNegativeCases) {
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+    if (getProductImage(item) === SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SAIDA_DRENAGEM_IMAGE`)
+    }
+  }
+
+  // Precedência de imagem própria do produto sobre SAIDA_DRENAGEM_IMAGE
+  const customImgSaida = {
+    sku: '8885',
+    name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+    image: 'https://exemplo.com/foto-especifica-drenagem.jpg',
+  }
+  if (getProductImage(customImgSaida) !== 'https://exemplo.com/foto-especifica-drenagem.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre SAIDA_DRENAGEM_IMAGE')
   }
 
   // Garantir que as 12 linhas anteriores continuam intactas e NÃO pegam CRISTAL_TRANCADA_IMAGE nem CRISTAL_IMAGE
@@ -296,6 +362,16 @@ export function runProductImageSelfCheck(): boolean {
       product: { name: 'MANGUEIRA BLINDADA GÁS FG 1/2"', brand: 'CONTUFLEX' },
       expectedImg: BLINDADA_GAS_FG_IMAGE,
     },
+    {
+      name: 'Cristal Trançada',
+      product: { sku: '3687', name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250', brand: 'IBIRÁ' },
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    {
+      name: 'Cristal',
+      product: { sku: '6980', name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS', brand: 'IBIRA' },
+      expectedImg: CRISTAL_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -306,8 +382,11 @@ export function runProductImageSelfCheck(): boolean {
     if (res === CRISTAL_IMAGE) {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_IMAGE`)
     }
-    if (res === CRISTAL_TRANCADA_IMAGE) {
+    if (res === CRISTAL_TRANCADA_IMAGE && line.name !== 'Cristal Trançada') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou CRISTAL_TRANCADA_IMAGE`)
+    }
+    if (res === SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou SAIDA_DRENAGEM_IMAGE`)
     }
   }
 
