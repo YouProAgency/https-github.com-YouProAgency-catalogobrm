@@ -22,6 +22,7 @@ import r14TeflonImg from '@/assets/tefloninox-5d491.png'
 import lisaIrrigacaoImg from '@/assets/irrigacaolisa-68fc2.png'
 import vacuoArPretaImg from '@/assets/vacuoarpreta-830f3.png'
 import gasLonadaPretaImg from '@/assets/gaslonadapreta-5dc68.png'
+import gasPvcImg from '@/assets/gaspvc-b0e56.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -49,6 +50,7 @@ export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 export const R14_TEFLON_IMAGE = r14TeflonImg
 export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
 export const GAS_LONADA_PRETA_IMAGE = gasLonadaPretaImg
+export const GAS_PVC_IMAGE = gasPvcImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -654,6 +656,46 @@ export function isGasLonadaPreta(product: ProductImageSubject | null | undefined
 }
 
 /**
+ * Checa se o produto pertence à linha de mangueira de Gás / Flexível em PVC.
+ * Regras da usuária ("mangueira flexivel pvc", "mangueira pvc gas", "mangueira gas pvc"):
+ * - Casa QUANDO o texto consolidado do produto (nome + descrições) contiver, como palavras inteiras
+ *   e case-insensitive (tolerante a acentuação):
+ *   1. "GAS"/"GÁS" + "PVC" juntos (qualquer ordem) — cobre "mangueira gas pvc" e "mangueira pvc gas"; OU
+ *   2. "FLEXIVEL"/"FLEXÍVEL" + "PVC" juntos (qualquer ordem) — cobre "mangueira flexivel pvc".
+ * - Sem restrição de marca.
+ * - Linhas com precedência superior (Blindada Gás FG, Gas Lonada Preta etc.) continuam com suas fotos.
+ */
+export function isGasPvc(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasPvc = /\bpvc\b/i.test(text)
+  if (!hasPvc) return false
+
+  // 1. "GAS"/"GÁS" + "PVC" juntos (qualquer ordem)
+  // Cobre "mangueira gas pvc", "mangueira pvc gas", "pvc para gás", etc.
+  const hasGas = /\bg[aá]s\b/i.test(text)
+  if (hasGas) {
+    return true
+  }
+
+  // 2. "FLEXIVEL"/"FLEXÍVEL" + "PVC" juntos (qualquer ordem) — cobre "mangueira flexivel pvc"
+  // Exclusões de linhas que têm "FLEXÍVEL" e "PVC" no nome mas NÃO pertencem à mangueira de gás PVC:
+  // - "ESPIRAL AÇO" / "ESPIRAL ACO" (ex.: SKU 1236 "MANGUEIRA FLEXIVEL 1.1/2\" PVC ESPIRAL AÇO")
+  // - "LARANJA" (ex.: SKU 2891 "MANGUEIRA FLEXIVEL 2\" PVC LARANJA / TRANSPARENTE")
+  const hasFlexivel = /\bflex[ií]vel\b/i.test(text)
+  if (hasFlexivel) {
+    const hasEspiralAco = /\bespiral\s+a[cç]o\b/i.test(text)
+    const hasLaranja = /\blaranja\b/i.test(text)
+    if (!hasEspiralAco && !hasLaranja) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -680,7 +722,8 @@ export function isGasLonadaPreta(product: ProductImageSubject | null | undefined
  * 23. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
  * 24. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
  * 25. Se for da linha Gás Lonada Preta, retorna a imagem oficial anexada (GAS_LONADA_PRETA_IMAGE)
- * 26. Fallback: placeholder genérico de produto
+ * 26. Se for da linha Gás / Flexível PVC, retorna a imagem oficial anexada (GAS_PVC_IMAGE)
+ * 27. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -796,6 +839,10 @@ export function getProductImage(
     return GAS_LONADA_PRETA_IMAGE
   }
 
+  if (isGasPvc(product)) {
+    return GAS_PVC_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -831,6 +878,7 @@ export function getProductImage(
  * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
  * - Se for Lisa Irrigação, retorna [LISA_IRRIGACAO_IMAGE].
  * - Se for Gás Lonada Preta, retorna [GAS_LONADA_PRETA_IMAGE].
+ * - Se for Gás / Flexível PVC, retorna [GAS_PVC_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -945,6 +993,10 @@ export function getProductImages(
 
   if (isGasLonadaPreta(product)) {
     return [GAS_LONADA_PRETA_IMAGE]
+  }
+
+  if (isGasPvc(product)) {
+    return [GAS_PVC_IMAGE]
   }
 
   return [fallbackUrl]

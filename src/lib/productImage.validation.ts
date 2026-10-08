@@ -16,6 +16,7 @@ import {
   isLisaIrrigacao,
   isVacuoArPreta,
   isGasLonadaPreta,
+  isGasPvc,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -42,6 +43,7 @@ import {
   R14_TEFLON_IMAGE,
   LISA_IRRIGACAO_IMAGE,
   GAS_LONADA_PRETA_IMAGE,
+  GAS_PVC_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -2259,6 +2261,383 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === GAS_LONADA_PRETA_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar GAS_LONADA_PRETA_IMAGE`)
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
+    }
+  }
+
+  // --- Validação da Linha MANGUEIRA GÁS / FLEXÍVEL PVC (26ª linha fotografada) ---
+  // Casos positivos reais e variações baseados na regra da usuária:
+  // "mangueira flexivel pvc", "mangueira pvc gas", "mangueira gas pvc"
+  // SKU 1946 real do banco: "MANGUEIRA GAS PVC 3/8\" PT-250 9K C/ TARJA"
+  const gasPvcPositiveCases = [
+    {
+      sku: '1946',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+    },
+    // Variações de case, ordem de palavras e acentuação:
+    {
+      sku: '9870',
+      name: 'mangueira gas pvc 3/8"',
+      brand: '',
+    },
+    {
+      sku: '9871',
+      name: 'MANGUEIRA PVC GÁS 1/2" REFORÇADA',
+      brand: 'GENÉRICA',
+    },
+    {
+      sku: '9872',
+      name: 'mangueira pvc gas amarela',
+      brand: '',
+    },
+    {
+      sku: '9873',
+      name: 'MANGUEIRA FLEXÍVEL PVC 1/2"',
+      brand: '',
+    },
+    {
+      sku: '9874',
+      name: 'mangueira flexivel pvc para gás',
+      brand: '',
+    },
+    {
+      sku: '9875',
+      name: 'MANGUEIRA PVC FLEXIVEL 3/4"',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9876',
+      name: 'MANGUEIRA PARA GÁS GLP EM PVC',
+      brand: '',
+    },
+    {
+      sku: '9877',
+      name: 'MANGUEIRA INDUSTRIAL 3/8"',
+      description: 'Mangueira flexivel pvc amarela com tarja para gas',
+      brand: '',
+    },
+  ]
+
+  for (const item of gasPvcPositiveCases) {
+    if (!isGasPvc(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isGasPvc`)
+    }
+    // Não pode casar com outras linhas de imagem
+    if (isBlindadaGasFg(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isBlindadaGasFg`)
+    }
+    if (isGasLonadaPreta(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isGasLonadaPreta`)
+    }
+    if (isVacuoArPreta(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isVacuoArPreta`)
+    }
+    if (isLisaIrrigacao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLisaIrrigacao`)
+    }
+    if (getProductImage(item) !== GAS_PVC_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou GAS_PVC_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== GAS_PVC_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [GAS_PVC_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada sobre GAS_PVC_IMAGE
+  const customImgGasPvc = {
+    sku: '1946',
+    name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+    image: 'https://exemplo.com/foto-especifica-gas-pvc.jpg',
+  }
+  if (getProductImage(customImgGasPvc) !== 'https://exemplo.com/foto-especifica-gas-pvc.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre GAS_PVC_IMAGE')
+  }
+
+  // Precedência de Gas Lonada Preta caso um produto hipotético cite "GAS PVC LONADA":
+  // Gas Lonada Preta foi posicionada antes na cadeia e deve ter prioridade.
+  const hipoteticoLonadaPvc = {
+    sku: '9878',
+    name: 'MANGUEIRA GAS PVC PRETA LONADA 1/2"',
+    brand: '',
+  }
+  if (!isGasLonadaPreta(hipoteticoLonadaPvc)) {
+    throw new Error('Produto hipotético com gas e lonada deveria casar com isGasLonadaPreta')
+  }
+  if (getProductImage(hipoteticoLonadaPvc) !== GAS_LONADA_PRETA_IMAGE) {
+    throw new Error(
+      'GAS_LONADA_PRETA_IMAGE deve ter precedência sobre GAS_PVC_IMAGE quando ambas casarem',
+    )
+  }
+
+  // Precedência de Blindada Gás FG:
+  const hipoteticoBlindadaPvc = {
+    sku: '9879',
+    name: 'MANGUEIRA BLINDADA GAS FG 1/2" REVESTIDA EM PVC',
+    brand: 'CONTUFLEX',
+  }
+  if (!isBlindadaGasFg(hipoteticoBlindadaPvc)) {
+    throw new Error('Produto blindada fg deveria casar com isBlindadaGasFg')
+  }
+  if (getProductImage(hipoteticoBlindadaPvc) !== BLINDADA_GAS_FG_IMAGE) {
+    throw new Error(
+      'BLINDADA_GAS_FG_IMAGE deve ter precedência sobre GAS_PVC_IMAGE quando ambas casarem',
+    )
+  }
+
+  // Casos negativos obrigatórios para Gás / Flexível PVC:
+  // - Os 4 SKUs da Gas Lonada (1960, 5737, 1966, 1073): mantêm foto Lonada
+  // - SKU 1236: "MANGUEIRA FLEXIVEL 1.1/2\" PVC ESPIRAL AÇO" — casaria com flexivel+pvc MAS não tem tarja amarela de gás?
+  //   Atenção: verificar se SKU 1236, 2891, 4903, 6207 NÃO devem casar com isGasPvc!
+  // - Produtos com "PVC" isolado sem gás/flexível (ex.: SKU 2234, 6407)
+  // - Produtos com "gás" isolado sem PVC (ex.: lonadas, reguladores)
+  // - Produtos com "flexível" isolado sem PVC (ex.: flexível alumínio SKU 6354)
+  const gasPvcNegativeCases = [
+    // 4 SKUs da Gás Lonada Preta (mantêm GAS_LONADA_PRETA_IMAGE, não citam PVC)
+    {
+      sku: '1960',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    {
+      sku: '5737',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 5/16" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    {
+      sku: '1966',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 3/8" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    {
+      sku: '1073',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/2" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    // Casos negativos citados explicitamente na tarefa:
+    // SKU 1236: MANGUEIRA FLEXIVEL 1.1/2" PVC ESPIRAL AÇO (PVC espiral de aço)
+    {
+      sku: '1236',
+      name: 'MANGUEIRA FLEXIVEL 1.1/2" PVC ESPIRAL AÇO',
+      brand: 'KANAFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // SKU 2891: MANGUEIRA FLEXIVEL 2" PVC LARANJA / TRANSPARENTE
+    {
+      sku: '2891',
+      name: 'MANGUEIRA FLEXIVEL 2" PVC LARANJA / TRANSPARENTE',
+      brand: 'KANAFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // SKU 4903: MANGUEIRA FLEXIVEL 2" KPU-Z (flexível sem pvc)
+    {
+      sku: '4903',
+      name: 'MANGUEIRA FLEXIVEL 2" KPU-Z',
+      brand: 'KANAFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // SKU 6207: MANGUEIRA FLEXIVEL 1.1/2" KAT ATOXICA (flexível sem pvc)
+    {
+      sku: '6207',
+      name: 'MANGUEIRA FLEXIVEL 1.1/2" KAT ATOXICA',
+      brand: 'KANAFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // SKU 2234: PVC sem gás nem flexível
+    {
+      sku: '2234',
+      name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // SKU 6407: CRISTAL PT250 PVC (tem regra própria Cristal Liso)
+    {
+      sku: '6407',
+      name: 'MANGUEIRA CRISTAL 1/2" PVC PT250 ATOXICA',
+      brand: 'KANAFLEX',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    // Blindada Gás FG (mantém BLINDADA_GAS_FG_IMAGE)
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // Flexível Alumínio (mantém ALUMINIO_PROTECAO_IMAGE, flexível sem PVC)
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    // Gás isolado sem PVC
+    {
+      sku: '9880',
+      name: 'REGULADOR DE GAS GLP BAIXA PRESSAO',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9881',
+      name: 'TUBO COBRE PARA GÁS 3/8"',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // PVC isolado sem gás nem flexível
+    {
+      sku: '9882',
+      name: 'TUBO PVC ESGOTO 100MM',
+      brand: 'TIGRE',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9883',
+      name: 'CURVA 90 PVC MARROM 25MM',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Flexível isolado sem PVC
+    {
+      sku: '9884',
+      name: 'ENGATE FLEXIVEL INOX 40CM 1/2"',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Amostras de não-regressão de outras linhas
+    {
+      sku: '9810',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    {
+      sku: '9811',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    {
+      sku: '9812',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    {
+      sku: '9813',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    {
+      sku: '9814',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    {
+      sku: '9815',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    {
+      sku: '6980',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    {
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: '2747',
+      name: 'MANGUEIRA SUCÇAO 3" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: '6293',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    {
+      sku: '4592',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    {
+      sku: '861',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+  ]
+
+  for (const item of gasPvcNegativeCases) {
+    if (isGasPvc(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isGasPvc`)
+    }
+    if (getProductImage(item) === GAS_PVC_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar GAS_PVC_IMAGE`)
     }
     if ('expectedImg' in item && item.expectedImg) {
       if (getProductImage(item) !== item.expectedImg) {
