@@ -69,7 +69,40 @@ export function runSeoSelfCheck() {
     throw new Error(`Descrição incorreta para SKU 7970: ${sku7970Desc}`)
   }
 
-  // 4. URLs absolutas
+  // 4. Teste específico para o SKU 3273 com a nova descrição e marca Korax
+  const sku3273Product: Product = {
+    id: 'iqk9alm5wmp1izx',
+    sku: '3273',
+    name: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI',
+    brand: 'Korax',
+    category: 'MANGUEIRA HIDRAULICA',
+    subcategory: '',
+    unit: 'MT',
+    price: 54.8,
+    shortDescription: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI',
+    longDescription: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI',
+    images: [],
+    specs: { Marca: 'Korax', Unidade: 'MT' },
+    featured: false,
+  }
+
+  const sku3273Title = buildProductTitle(sku3273Product)
+  if (!sku3273Title.includes('MANGUEIRA R14 5/16" TEFLON 1.520 PSI')) {
+    throw new Error(`Título incorreto para SKU 3273: ${sku3273Title}`)
+  }
+
+  const sku3273Desc = buildProductDescription(sku3273Product)
+  if (
+    !sku3273Desc.includes('MANGUEIRA R14 5/16" TEFLON 1.520 PSI da Korax') &&
+    !sku3273Desc.includes('Korax')
+  ) {
+    throw new Error(`Descrição incorreta para SKU 3273: ${sku3273Desc}`)
+  }
+  if (!sku3273Desc.includes('WhatsApp (11) 9.4708-2171')) {
+    throw new Error(`Descrição sem WhatsApp para SKU 3273: ${sku3273Desc}`)
+  }
+
+  // 5. URLs absolutas
   const relUrl = '/assets/forzadue-2-2ed92.jpeg'
   const absUrl = toAbsoluteImageUrl(relUrl)
   if (absUrl !== `${SITE_DOMAIN}${relUrl}`) {

@@ -305,6 +305,13 @@ export default function AdminImport() {
           rawName = 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA'
         }
 
+        // Preserva o nome oficial e marca Korax do SKU 3273 caso a planilha traga o nome antigo ou sem marca
+        if (rawSku === '3273') {
+          if (!rawName || rawName.toUpperCase() === 'MANGUEIRA R14 5/16" TEFLON') {
+            rawName = 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI'
+          }
+        }
+
         const rawUnitCandidate =
           row[colMap.unit] !== undefined ? String(row[colMap.unit]).trim() : ''
         const cleanUnit = sanitizeProductUnit(rawUnitCandidate, rawName)
@@ -336,7 +343,12 @@ export default function AdminImport() {
 
         const rawCategory =
           row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
-        const rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
+        let rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
+
+        // Preserva a marca oficial Korax para o SKU 3273
+        if (rawSku === '3273' && (!rawBrand || rawBrand.toUpperCase() === 'KORAX')) {
+          rawBrand = 'Korax'
+        }
 
         // Pula produtos cuja descrição/nome/unidade contenha "conforme amostra"
         // (produtos personalizados vendidos exclusivamente em loja física)

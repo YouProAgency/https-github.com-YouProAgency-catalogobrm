@@ -354,12 +354,12 @@ export async function upsertProductBatch(
 
           const normalizedUnit = sanitizeProductUnit(row.unit, row.name)
 
-          // Caso específico: SKU 7970 possui descrição oficial customizada aprovada
-          // ("MANGUEIRA R5 13/32\" BRAKEMASTER 2.100 PSI / 13,8 MPA")
-          // Se a planilha contiver a descrição curta antiga ("MANGUEIRA R5 13/32\""),
-          // preserva a descrição oficial detalhada para não sobrescrever silenciosamente.
+          // Casos específicos de SKUs com descrição e/ou marca customizadas aprovadas:
+          // 1) SKU 7970: descrição oficial ("MANGUEIRA R5 13/32\" BRAKEMASTER 2.100 PSI / 13,8 MPA")
+          // 2) SKU 3273: descrição oficial ("MANGUEIRA R14 5/16\" TEFLON 1.520 PSI") e marca "Korax"
           let resolvedName = row.name.trim()
           let resolvedDescription: string | undefined = undefined
+          let resolvedBrand = row.brand.trim()
 
           if (cleanSku === '7970') {
             const officialCustomDesc = 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA'
@@ -371,6 +371,20 @@ export async function upsertProductBatch(
               resolvedName = officialCustomDesc
               resolvedDescription = officialCustomDesc
             }
+          } else if (cleanSku === '3273') {
+            const officialCustomDesc = 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI'
+            const officialCustomBrand = 'Korax'
+            if (
+              !resolvedName ||
+              resolvedName.toUpperCase() === 'MANGUEIRA R14 5/16" TEFLON' ||
+              resolvedName.toUpperCase() === officialCustomDesc.toUpperCase()
+            ) {
+              resolvedName = officialCustomDesc
+              resolvedDescription = officialCustomDesc
+            }
+            if (!resolvedBrand || resolvedBrand.toUpperCase() === 'KORAX' || resolvedBrand === '') {
+              resolvedBrand = officialCustomBrand
+            }
           }
 
           const payload: Record<string, any> = {
@@ -379,7 +393,7 @@ export async function upsertProductBatch(
             ...(resolvedDescription ? { description: resolvedDescription } : {}),
             unit: normalizedUnit,
             category: row.category.trim(),
-            brand: row.brand.trim(),
+            brand: resolvedBrand,
             price: salePrice,
             price1: row.price1 ?? null,
             price2: row.price2 ?? null,
