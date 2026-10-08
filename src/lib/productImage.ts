@@ -23,6 +23,7 @@ import lisaIrrigacaoImg from '@/assets/irrigacaolisa-68fc2.png'
 import vacuoArPretaImg from '@/assets/vacuoarpreta-830f3.png'
 import gasLonadaPretaImg from '@/assets/gaslonadapreta-5dc68.png'
 import gasPvcImg from '@/assets/gaspvc-b0e56.png'
+import lavaAutoImg from '@/assets/lavaauto-f265e.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -51,6 +52,7 @@ export const R14_TEFLON_IMAGE = r14TeflonImg
 export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
 export const GAS_LONADA_PRETA_IMAGE = gasLonadaPretaImg
 export const GAS_PVC_IMAGE = gasPvcImg
+export const LAVA_AUTO_IMAGE = lavaAutoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -696,6 +698,26 @@ export function isGasPvc(product: ProductImageSubject | null | undefined): boole
 }
 
 /**
+ * Checa se o produto pertence à linha "Mangueira Lava Auto".
+ * Regras:
+ * - Casa quando o texto consolidado do produto (nome + descrições) contiver as palavras
+ *   inteiras "LAVA" e "AUTO" juntas (qualquer ordem, case-insensitive).
+ * - "AUTO" como palavra inteira não deve capturar "automático", "automotivo" etc. (\bauto\b).
+ * - "LAVA" como palavra inteira (\blava\b).
+ * - Sem restrição de marca (o SKU 529 tem brand KORAX mas o nome contém "KORFLEX";
+ *   a regra não deve depender de marca).
+ */
+export function isLavaAuto(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasLava = /\blava\b/i.test(text)
+  const hasAuto = /\bauto\b/i.test(text)
+
+  return hasLava && hasAuto
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -723,7 +745,8 @@ export function isGasPvc(product: ProductImageSubject | null | undefined): boole
  * 24. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
  * 25. Se for da linha Gás Lonada Preta, retorna a imagem oficial anexada (GAS_LONADA_PRETA_IMAGE)
  * 26. Se for da linha Gás / Flexível PVC, retorna a imagem oficial anexada (GAS_PVC_IMAGE)
- * 27. Fallback: placeholder genérico de produto
+ * 27. Se for da linha Lava Auto, retorna a imagem oficial anexada (LAVA_AUTO_IMAGE)
+ * 28. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -843,6 +866,10 @@ export function getProductImage(
     return GAS_PVC_IMAGE
   }
 
+  if (isLavaAuto(product)) {
+    return LAVA_AUTO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -879,6 +906,7 @@ export function getProductImage(
  * - Se for Lisa Irrigação, retorna [LISA_IRRIGACAO_IMAGE].
  * - Se for Gás Lonada Preta, retorna [GAS_LONADA_PRETA_IMAGE].
  * - Se for Gás / Flexível PVC, retorna [GAS_PVC_IMAGE].
+ * - Se for Lava Auto, retorna [LAVA_AUTO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -997,6 +1025,10 @@ export function getProductImages(
 
   if (isGasPvc(product)) {
     return [GAS_PVC_IMAGE]
+  }
+
+  if (isLavaAuto(product)) {
+    return [LAVA_AUTO_IMAGE]
   }
 
   return [fallbackUrl]

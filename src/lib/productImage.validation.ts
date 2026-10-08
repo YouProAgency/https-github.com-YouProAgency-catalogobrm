@@ -17,6 +17,7 @@ import {
   isVacuoArPreta,
   isGasLonadaPreta,
   isGasPvc,
+  isLavaAuto,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -44,6 +45,7 @@ import {
   LISA_IRRIGACAO_IMAGE,
   GAS_LONADA_PRETA_IMAGE,
   GAS_PVC_IMAGE,
+  LAVA_AUTO_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -2643,6 +2645,365 @@ export function runProductImageSelfCheck(): boolean {
       if (getProductImage(item) !== item.expectedImg) {
         throw new Error(
           `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
+    }
+  }
+
+  // --- Validação da Linha Mangueira Lava Auto ---
+  // 1. Casos positivos obrigatórios:
+  // - SKU 529 oficial do banco: MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI (brand KORAX)
+  // - Variações em minúsculo, case misto, espaçamento
+  // - Palavras "lava" e "auto" em posições distintas no nome/descrição
+  const lavaAutoPositiveCases = [
+    {
+      sku: '529',
+      name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI',
+      brand: 'KORAX',
+      category: 'MANGUEIRAS',
+    },
+    {
+      sku: '529-lower',
+      name: 'mangueira lava auto 1/2" azul',
+      brand: 'korax',
+    },
+    {
+      sku: '529-mixed',
+      name: 'MANGUEIRA Lava Auto 1/2" AZUL 1000 PSI',
+      brand: '',
+    },
+    {
+      sku: '529-separated',
+      name: 'MANGUEIRA PARA AUTO 1/2" DE LAVA JATO',
+      brand: 'KORAX',
+    },
+    {
+      sku: '529-desc-split',
+      name: 'MANGUEIRA AZUL 1/2" KORAX',
+      description: 'Mangueira especial para auto e lava car',
+    },
+    {
+      sku: '529-order-reversed',
+      name: 'MANGUEIRA AUTO POSTO LAVA RAPIDO 1/2"',
+      brand: '',
+    },
+  ]
+
+  for (const item of lavaAutoPositiveCases) {
+    if (!isLavaAuto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isLavaAuto`)
+    }
+    // Não pode casar com outras linhas de imagem que têm azul ou gás ou sucção
+    if (isSuccaoAzul(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoAzul`)
+    }
+    if (isGasPvc(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isGasPvc`)
+    }
+    if (getProductImage(item) !== LAVA_AUTO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou LAVA_AUTO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== LAVA_AUTO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [LAVA_AUTO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada sobre LAVA_AUTO_IMAGE
+  const customImgLavaAuto = {
+    sku: '529',
+    name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI',
+    image: 'https://exemplo.com/foto-especifica-lava-auto.jpg',
+  }
+  if (getProductImage(customImgLavaAuto) !== 'https://exemplo.com/foto-especifica-lava-auto.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre LAVA_AUTO_IMAGE')
+  }
+
+  // 2. Casos negativos obrigatórios para Lava Auto:
+  // - Produtos com "azul" que NÃO são lava auto (Sucção Azul SKU 2747, Jardim Azul, Chata Flat Azul):
+  //   mantêm suas respectivas fotos / default e NÃO casam com isLavaAuto
+  // - Produtos com "auto" isolado sem lava (ex.: "auto socorro", "auto adesiva")
+  // - Produtos com "automático", "automotivo" (word boundary: não deve capturar)
+  // - Produtos com "lava" isolado sem auto (ex.: "lava louças", "lavadora")
+  // - Bateria completa de não-regressão das 25 linhas anteriores
+  const lavaAutoNegativeCases = [
+    // Produtos azuis que NÃO são lava auto
+    {
+      sku: '2747',
+      name: 'MANGUEIRA SUCÇAO 3" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: '9840',
+      name: 'MANGUEIRA VACUO AR AZUL 2"',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: '9841',
+      name: 'MANGUEIRA CHATA FLAT AZUL 2"',
+      brand: 'IBIRÁ',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9842',
+      name: 'MANGUEIRA JARDIM AZUL 1/2"',
+      brand: 'IBIRA',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // "Auto" isolado sem "lava"
+    {
+      sku: '9843',
+      name: 'FITA AUTO FUSAO 19MM X 10M',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9844',
+      name: 'CABO ELETRICO AUTO SOCORRO',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Prefixos/subpalavras de "auto": automático, automotivo, autoclave etc.
+    {
+      sku: '9845',
+      name: 'MANGUEIRA LAVA AUTOMATICA 1/2"',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9846',
+      name: 'LAVADORA AUTOMATICA DE ALTA PRESSAO',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9847',
+      name: 'MANGUEIRA LAVA LOUCA AUTOMATICA',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9848',
+      name: 'VALVULA DE RETENCAO AUTOMATICA',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9849',
+      name: 'TUBO PARA LINHA AUTOMOTIVA 8MM',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // "Lava" isolado sem "auto"
+    {
+      sku: '9850',
+      name: 'MANGUEIRA ENTRADA LAVA ROUPA 1,5M',
+      brand: 'IBIRA',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9851',
+      name: 'MANGUEIRA SAIDA LAVA LOUCAS 2M',
+      brand: 'IBIRA',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9852',
+      name: 'ENGATE RAPIDO PARA LAVADORA',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Amostras de TODAS as 25 linhas anteriores (não-regressão completa)
+    // 1. Balflex Forza Uno Tropic
+    {
+      sku: '9853',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    // 2. Balflex Forza Uno
+    {
+      sku: '9854',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    // 3. Balflex Forza Due Tropic
+    {
+      sku: '9855',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    // 4. Balflex Forza Due
+    {
+      sku: '9856',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    // 5. Balflex Texmaster
+    {
+      sku: '9857',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    // 6. Balflex R6 Multipurpose
+    {
+      sku: '9858',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    // 7. Balflex Fuel Pump
+    {
+      sku: '9859',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+    // 8. Balflex Supersteam
+    {
+      sku: '9860',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 210C 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    // 9. Korax Kobra 1
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    // 10. Korax Kobra 2
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    // 11. Blindada Gás FG
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // 12. Cristal Trançada
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    // 13. Cristal Liso
+    {
+      sku: '6980',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    // 14. Saída Drenagem
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // 15. Saída Corrugada Branca
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    // 16. Saída Tanquinho
+    {
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    // 17. Sucção Laranja
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    // 18. Sucção Cinza / Vácuo Ar Cinza
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    // 19. Sucção Azul
+    {
+      sku: '2747-rep',
+      name: 'MANGUEIRA SUCÇAO 2.1/2" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    // 20. Vácuo Ar Preta
+    {
+      sku: '6293',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    // 21. Alumínio Proteção
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    // 22. R14 Teflon
+    {
+      sku: '4592-rep',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    // 23. Lisa Irrigação
+    {
+      sku: '861',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+    // 24. Gás Lonada Preta
+    {
+      sku: '1960',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    // 25. Gás / Flexível PVC
+    {
+      sku: '1946',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+      expectedImg: GAS_PVC_IMAGE,
+    },
+  ]
+
+  for (const item of lavaAutoNegativeCases) {
+    if (isLavaAuto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLavaAuto`)
+    }
+    if (getProductImage(item) === LAVA_AUTO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar LAVA_AUTO_IMAGE`)
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada na linha Lava Auto: esperava imagem dedicada`,
         )
       }
     }
