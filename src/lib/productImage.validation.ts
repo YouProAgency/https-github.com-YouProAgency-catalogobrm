@@ -15,6 +15,7 @@ import {
   isR14Teflon,
   isLisaIrrigacao,
   isVacuoArPreta,
+  isGasLonadaPreta,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -40,6 +41,7 @@ import {
   ALUMINIO_PROTECAO_IMAGE,
   R14_TEFLON_IMAGE,
   LISA_IRRIGACAO_IMAGE,
+  GAS_LONADA_PRETA_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -1973,6 +1975,288 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === VACUO_AR_PRETA_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar VACUO_AR_PRETA_IMAGE`)
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
+    }
+  }
+
+  // --- Validação da Linha MANGUEIRA GAS GNV/GLP/GN PRETA LONADA (25ª linha fotografada) ---
+  // Casos positivos reais confirmados no banco de dados (SKUs 1960, 5737, 1966, 1073):
+  const gasLonadaPretaPositiveCases = [
+    { sku: '1960', name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA', brand: '' },
+    { sku: '5737', name: 'MANGUEIRA GAS GNV/GLP/GN 5/16" PRETA LONADA', brand: '' },
+    { sku: '1966', name: 'MANGUEIRA GAS GNV/GLP/GN 3/8" PRETA LONADA', brand: '' },
+    { sku: '1073', name: 'MANGUEIRA GAS GNV/GLP/GN 1/2" PRETA LONADA', brand: '' },
+    // Variações de case, formato, acentuação (GÁS) e descrição:
+    { sku: '9850', name: 'mangueira gas gnv/glp/gn 1/4" preta lonada', brand: '' },
+    { sku: '9851', name: 'MANGUEIRA GÁS LONADA PRETA 5/16"', brand: 'GENÉRICA' },
+    { sku: '9852', name: 'MANGUEIRA LONADA PARA GÁS GLP 1/2"', brand: '' },
+    { sku: '9853', name: 'MANGUEIRA LONADA GAS', brand: '' },
+    {
+      sku: '9854',
+      name: 'MANGUEIRA AUTOMOTIVA 3/8"',
+      description: 'Mangueira gas gnv preta lonada para alta pressao',
+      brand: '',
+    },
+  ]
+
+  for (const item of gasLonadaPretaPositiveCases) {
+    if (!isGasLonadaPreta(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isGasLonadaPreta`)
+    }
+    // Não pode casar com outras linhas de imagem
+    if (isBlindadaGasFg(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isBlindadaGasFg`)
+    }
+    if (isVacuoArPreta(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isVacuoArPreta`)
+    }
+    if (isLisaIrrigacao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLisaIrrigacao`)
+    }
+    if (getProductImage(item) !== GAS_LONADA_PRETA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou GAS_LONADA_PRETA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== GAS_LONADA_PRETA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [GAS_LONADA_PRETA_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada sobre GAS_LONADA_PRETA_IMAGE
+  const customImgGasLonada = {
+    sku: '1960',
+    name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+    image: 'https://exemplo.com/foto-especifica-gas-lonada.jpg',
+  }
+  if (
+    getProductImage(customImgGasLonada) !== 'https://exemplo.com/foto-especifica-gas-lonada.jpg'
+  ) {
+    throw new Error('Imagem própria do produto deve ter precedência sobre GAS_LONADA_PRETA_IMAGE')
+  }
+
+  // Casos negativos obrigatórios para Gás Lonada Preta:
+  // 1) "MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA" (SKU 1946) — é gás mas NÃO é lonada
+  // 2) Blindada Gás FG (Contuflex) — mantém a foto própria da linha dela; não pode casar com isGasLonadaPreta nem perder sua imagem
+  // 3) Produtos com "lonada" sem "gás"
+  // 4) Produtos com "gás" sem "lonada"
+  // 5) Não-regressão de todas as 23 linhas fotografadas anteriormente
+  const gasLonadaPretaNegativeCases = [
+    // 1) SKU 1946: gás pvc com tarja sem lonada
+    {
+      sku: '1946',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+    },
+    // 2) Blindada Gás FG (SKUs reais do catálogo)
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    {
+      sku: '5882',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 1,2 METROS',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    {
+      sku: '5881',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 1,0 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // 3) Tem "lonada" sem "gás":
+    {
+      sku: '9860',
+      name: 'MANGUEIRA DE BORRACHA LONADA 1/2" PARA AGUA',
+      brand: '',
+    },
+    {
+      sku: '9861',
+      name: 'CORREIA LONADA INDUSTRIAL',
+      brand: '',
+    },
+    {
+      sku: '9862',
+      name: 'LONA LONADA IMPERMEAVEL 4X4',
+      brand: '',
+    },
+    // 4) Tem "gás" sem "lonada":
+    {
+      sku: '9863',
+      name: 'REGULADOR DE GAS GLP BAIXA PRESSAO',
+      brand: '',
+    },
+    {
+      sku: '9864',
+      name: 'MANGUEIRA PARA GAS BUTANO REFORCADA',
+      brand: '',
+    },
+    {
+      sku: '9865',
+      name: 'TUBO COBRE PARA GÁS 3/8"',
+      brand: '',
+    },
+    // 5) Não-regressão de amostras de todas as linhas de catálogo anteriores:
+    {
+      sku: '9810',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    {
+      sku: '9811',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    {
+      sku: '9812',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    {
+      sku: '9813',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    {
+      sku: '9814',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    {
+      sku: '9815',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    {
+      sku: '9816',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+    {
+      sku: '9817',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    {
+      sku: '6980',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    {
+      sku: '4523',
+      name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: '5022',
+      name: 'MANGUEIRA VACUO AR 3/4"',
+      brand: '',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: '1599',
+      name: 'MANGUEIRA VACUO AR 1.1/2"',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: '2747',
+      name: 'MANGUEIRA SUCÇAO 3" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: '6293',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    {
+      sku: '4592',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    {
+      sku: '861',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+  ]
+
+  for (const item of gasLonadaPretaNegativeCases) {
+    if (isGasLonadaPreta(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isGasLonadaPreta`)
+    }
+    if (getProductImage(item) === GAS_LONADA_PRETA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar GAS_LONADA_PRETA_IMAGE`)
     }
     if ('expectedImg' in item && item.expectedImg) {
       if (getProductImage(item) !== item.expectedImg) {

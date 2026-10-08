@@ -21,6 +21,7 @@ import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
 import r14TeflonImg from '@/assets/tefloninox-5d491.png'
 import lisaIrrigacaoImg from '@/assets/irrigacaolisa-68fc2.png'
 import vacuoArPretaImg from '@/assets/vacuoarpreta-830f3.png'
+import gasLonadaPretaImg from '@/assets/gaslonadapreta-5dc68.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -47,6 +48,7 @@ export const VACUO_AR_PRETA_IMAGE = vacuoArPretaImg
 export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 export const R14_TEFLON_IMAGE = r14TeflonImg
 export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
+export const GAS_LONADA_PRETA_IMAGE = gasLonadaPretaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -631,6 +633,27 @@ export function isLisaIrrigacao(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA GAS GNV/GLP/GN PRETA LONADA".
+ * Regras:
+ * - Exige a presença simultânea de "GAS" (ou "GÁS", tolerante a acentuação e case-insensitive)
+ *   e "LONADA", como palavras inteiras (/\bg[aá]s\b/i e /\blonada\b/i), no texto consolidado
+ *   do produto (nome + descrições), em qualquer ordem/posição.
+ * - Sem restrição de marca (os produtos da linha não têm marca cadastrada).
+ * - Exclui produtos que tenham apenas "gás" sem "lonada" (ex: SKU 1946 PVC C/ TARJA)
+ *   ou apenas "lonada" sem "gás".
+ * - Linhas como Blindada Gás FG possuem regra própria com precedência na cadeia.
+ */
+export function isGasLonadaPreta(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasGas = /\bg[aá]s\b/i.test(text)
+  const hasLonada = /\blonada\b/i.test(text)
+
+  return hasGas && hasLonada
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -656,7 +679,8 @@ export function isLisaIrrigacao(product: ProductImageSubject | null | undefined)
  * 22. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
  * 23. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
  * 24. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
- * 25. Fallback: placeholder genérico de produto
+ * 25. Se for da linha Gás Lonada Preta, retorna a imagem oficial anexada (GAS_LONADA_PRETA_IMAGE)
+ * 26. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -768,6 +792,10 @@ export function getProductImage(
     return LISA_IRRIGACAO_IMAGE
   }
 
+  if (isGasLonadaPreta(product)) {
+    return GAS_LONADA_PRETA_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -802,6 +830,7 @@ export function getProductImage(
  * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
  * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
  * - Se for Lisa Irrigação, retorna [LISA_IRRIGACAO_IMAGE].
+ * - Se for Gás Lonada Preta, retorna [GAS_LONADA_PRETA_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -912,6 +941,10 @@ export function getProductImages(
 
   if (isLisaIrrigacao(product)) {
     return [LISA_IRRIGACAO_IMAGE]
+  }
+
+  if (isGasLonadaPreta(product)) {
+    return [GAS_LONADA_PRETA_IMAGE]
   }
 
   return [fallbackUrl]
