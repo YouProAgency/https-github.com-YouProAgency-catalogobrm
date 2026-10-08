@@ -410,9 +410,11 @@ export function runProductImageSelfCheck(): boolean {
   }
 
   // --- Validação da Linha Saída Tanquinho (21ª linha fotografada) ---
-  // Casos positivos reais do banco (SKU 4523) e variações (com e sem acento, ordem de palavras, case):
+  // A regra de imagem isSaidaTanquinho permanece ativa para cobertura de futuros produtos da linha (ex.: novas variações de Saída Tanquinho).
+  // Nota: SKU 4523 original foi permanentemente excluído do catálogo a pedido do usuário; validamos o padrão textual do nome "SAÍDA ... TANQUINHO"
+  // tanto para SKU histórico 4523 como para variações de formato, acento, ordem de palavras e case:
   const saidaTanquinhoPositiveCases = [
-    // Produto real do banco de dados (ordem não contígua: "SAIDA" + "1,27M" + "TANQUINHO")
+    // Padrão do produto histórico (ordem não contígua: "SAIDA" + "1,27M" + "TANQUINHO")
     { sku: '4523', name: 'MANGUEIRA SAIDA 1,27M TANQUINHO', brand: '' },
     // Variações com acento no SAÍDA
     { sku: '4526', name: 'MANGUEIRA SAÍDA 1,27M TANQUINHO', brand: '' },
@@ -973,8 +975,8 @@ export function runProductImageSelfCheck(): boolean {
     {
       name: 'Saída Tanquinho',
       product: {
-        sku: '4523',
-        name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+        sku: '4529',
+        name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
         brand: '',
       },
       expectedImg: SAIDA_TANQUINHO_IMAGE,
@@ -1458,8 +1460,8 @@ export function runProductImageSelfCheck(): boolean {
       expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
     },
     {
-      sku: '4523',
-      name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
       brand: '',
       expectedImg: SAIDA_TANQUINHO_IMAGE,
     },
@@ -1944,8 +1946,8 @@ export function runProductImageSelfCheck(): boolean {
       expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
     },
     {
-      sku: '4523',
-      name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
       brand: '',
       expectedImg: SAIDA_TANQUINHO_IMAGE,
     },
@@ -2190,8 +2192,8 @@ export function runProductImageSelfCheck(): boolean {
       expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
     },
     {
-      sku: '4523',
-      name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
       brand: '',
       expectedImg: SAIDA_TANQUINHO_IMAGE,
     },
