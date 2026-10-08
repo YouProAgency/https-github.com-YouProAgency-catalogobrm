@@ -8,7 +8,9 @@ import {
   isSaidaCorrugadaBranca,
   isSuccaoLaranja,
   isSuccaoCinzaOuVacuoArCinza,
+  isBlindadaGasFg,
   isAluminioProtecao,
+  isR14Teflon,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -29,6 +31,7 @@ import {
   SUCCAO_LARANJA_IMAGE,
   VACUO_AR_CINZA_IMAGE,
   ALUMINIO_PROTECAO_IMAGE,
+  R14_TEFLON_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
@@ -851,6 +854,15 @@ export function runProductImageSelfCheck(): boolean {
       },
       expectedImg: VACUO_AR_CINZA_IMAGE,
     },
+    {
+      name: 'Alumínio Proteção',
+      product: {
+        sku: '6354',
+        name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+        brand: '',
+      },
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -878,8 +890,157 @@ export function runProductImageSelfCheck(): boolean {
     if (res === VACUO_AR_CINZA_IMAGE && line.name !== 'Sucção Cinza / Vácuo Ar Cinza') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou VACUO_AR_CINZA_IMAGE`)
     }
-    if (res === ALUMINIO_PROTECAO_IMAGE) {
+    if (res === ALUMINIO_PROTECAO_IMAGE && line.name !== 'Alumínio Proteção') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou ALUMINIO_PROTECAO_IMAGE`)
+    }
+    if (res === R14_TEFLON_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou R14_TEFLON_IMAGE`)
+    }
+  }
+
+  // --- Validação da Linha Mangueira R14 Teflon Korax (20ª regra / nova linha fotografada) ---
+  // Casos positivos reais dos 6 SKUs no PocketBase:
+  const r14TeflonPositiveCases = [
+    { sku: '2391', name: 'MANGUEIRA R14 3/16" TEFLON 1.520 PSI', brand: 'KORAX' },
+    { sku: '5351', name: 'MANGUEIRA R14 1/4" TEFLON 1.520 PSI', brand: 'KORAX' },
+    { sku: '3273', name: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI', brand: 'Korax' },
+    { sku: '2390', name: 'MANGUEIRA R14 13/32" TEFLON 1.520 PSI', brand: 'KORAX' },
+    { sku: '4592', name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI', brand: 'KORAX' },
+    { sku: '352', name: 'MANGUEIRA R14 5/8" TEFLON 1.520 PSI', brand: 'KORAX' },
+    // Variações de case, formato e descrição:
+    { sku: '9401', name: 'mangueira r14 teflon 1/2"', brand: 'korax' },
+    { sku: '9402', name: 'MANGUEIRA TEFLON R14 3/4" 1500 PSI', brand: 'KORAX' },
+    { sku: '9403', name: 'TUBO R14 TEFLON INOX', brand: 'Korax' },
+    {
+      sku: '9404',
+      name: 'MANGUEIRA HIDRÁULICA',
+      description: 'Mangueira R14 teflon com malha inox korax',
+      brand: 'KORAX',
+    },
+  ]
+
+  for (const item of r14TeflonPositiveCases) {
+    if (!isR14Teflon(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isR14Teflon`)
+    }
+    // Blindada Gás FG e Alumínio Proteção NÃO devem casar com produtos R14
+    if (isBlindadaGasFg(item)) {
+      throw new Error(`Item R14 ${item.sku} NÃO deve casar com isBlindadaGasFg`)
+    }
+    if (isAluminioProtecao(item)) {
+      throw new Error(`Item R14 ${item.sku} NÃO deve casar com isAluminioProtecao`)
+    }
+    if (getProductImage(item) !== R14_TEFLON_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou R14_TEFLON_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== R14_TEFLON_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [R14_TEFLON_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre R14_TEFLON_IMAGE
+  const customImgR14 = {
+    sku: '4592',
+    name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+    brand: 'KORAX',
+    image: 'https://exemplo.com/foto-especifica-r14.jpg',
+  }
+  if (getProductImage(customImgR14) !== 'https://exemplo.com/foto-especifica-r14.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre R14_TEFLON_IMAGE')
+  }
+
+  // Casos negativos estritos para R14 Teflon:
+  // 1) R14 de OUTRA marca (ex: Balflex, Ibirá ou sem marca)
+  // 2) Korax SEM R14 (ex: R1, R2, R17, Kobra)
+  // 3) Korax R14 SEM Teflon
+  // 4) Substrings não delimitadas como token (ex: PR14, R140, etc.)
+  // 5) Outras mangueiras metálicas (Blindada Gás FG, Alumínio Proteção)
+  const r14TeflonNegativeCases = [
+    // Outra marca com R14 Teflon:
+    {
+      sku: '9410',
+      name: 'MANGUEIRA R14 1/2" TEFLON',
+      brand: 'BALFLEX',
+    },
+    {
+      sku: '9411',
+      name: 'MANGUEIRA R14 1/2" TEFLON',
+      brand: 'IBIRA',
+    },
+    {
+      sku: '9412',
+      name: 'MANGUEIRA R14 1/2" TEFLON',
+      brand: '',
+    },
+    // Korax mas NÃO é R14:
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+    },
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+    },
+    {
+      sku: '6689',
+      name: 'MANGUEIRA R17 1/2" ELITE',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9413',
+      name: 'MANGUEIRA R12 3/4" KOBRA',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9414',
+      name: 'MANGUEIRA R2 TEFLON 1/2"',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9415',
+      name: 'MANGUEIRA R1 TEFLON 1/2"',
+      brand: 'KORAX',
+    },
+    // Korax R14 mas SEM Teflon:
+    {
+      sku: '9416',
+      name: 'MANGUEIRA R14 1/2" BORRACHA',
+      brand: 'KORAX',
+    },
+    // Token boundary (não deve casar com R140, PR14):
+    {
+      sku: '9417',
+      name: 'MANGUEIRA PR14 TEFLON 1/2"',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9418',
+      name: 'MANGUEIRA R140 TEFLON 1/2"',
+      brand: 'KORAX',
+    },
+    // Blindada Gás FG Contuflex:
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+    },
+    // Alumínio Proteção:
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+    },
+  ]
+
+  for (const item of r14TeflonNegativeCases) {
+    if (isR14Teflon(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isR14Teflon`)
+    }
+    if (getProductImage(item) === R14_TEFLON_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar R14_TEFLON_IMAGE`)
     }
   }
 

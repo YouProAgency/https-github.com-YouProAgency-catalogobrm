@@ -16,6 +16,7 @@ import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
 import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
+import r14TeflonImg from '@/assets/tefloninox-5d491.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -37,6 +38,7 @@ export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
 export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
+export const R14_TEFLON_IMAGE = r14TeflonImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -454,6 +456,26 @@ export function isAluminioProtecao(product: ProductImageSubject | null | undefin
 }
 
 /**
+ * Checa se o produto pertence à linha "Mangueira R14 Teflon" (PTFE com malha inox) da marca Korax.
+ * Regra: exige SIMULTANEAMENTE:
+ * - Marca = Korax (case-insensitive, via `isKoraxBrand`)
+ * - "R14" como palavra/token inteiro (/\br14\b/i) no texto consolidado (nome + descrições)
+ * - "TEFLON" (/\bteflon\b/i) no texto consolidado, tolerante a acentuação e case
+ * Não deve capturar outras mangueiras metálicas (ex.: Blindada Gás FG ou Alumínio Proteção)
+ * nem outros modelos Korax (ex.: Kobra 1/R1, Kobra 2/R2, R17 Elite).
+ */
+export function isR14Teflon(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  if (!isKoraxBrand(product)) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasR14 = /\br14\b/i.test(text)
+  const hasTeflon = /\bteflon\b/i.test(text)
+
+  return hasR14 && hasTeflon
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -474,7 +496,8 @@ export function isAluminioProtecao(product: ProductImageSubject | null | undefin
  * 17. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
  * 18. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
  * 19. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
- * 20. Fallback: placeholder genérico de produto
+ * 20. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
+ * 21. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -566,6 +589,10 @@ export function getProductImage(
     return ALUMINIO_PROTECAO_IMAGE
   }
 
+  if (isR14Teflon(product)) {
+    return R14_TEFLON_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -595,6 +622,7 @@ export function getProductImage(
  * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
  * - Se for Sucção Cinza / Vácuo Ar Cinza, retorna [VACUO_AR_CINZA_IMAGE].
  * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
+ * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -685,6 +713,10 @@ export function getProductImages(
 
   if (isAluminioProtecao(product)) {
     return [ALUMINIO_PROTECAO_IMAGE]
+  }
+
+  if (isR14Teflon(product)) {
+    return [R14_TEFLON_IMAGE]
   }
 
   return [fallbackUrl]
