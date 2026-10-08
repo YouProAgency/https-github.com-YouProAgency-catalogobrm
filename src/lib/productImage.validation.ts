@@ -9,6 +9,7 @@ import {
   isSuccaoLaranja,
   isSuccaoCinzaOuVacuoArCinza,
   isBlindadaGasFg,
+  isSuccaoAzul,
   isAluminioProtecao,
   isR14Teflon,
   getProductImage,
@@ -30,11 +31,11 @@ import {
   SAIDA_DRENAGEM_IMAGE,
   SUCCAO_LARANJA_IMAGE,
   VACUO_AR_CINZA_IMAGE,
+  SUCCAO_AZUL_IMAGE,
   ALUMINIO_PROTECAO_IMAGE,
   R14_TEFLON_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
-
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
  * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem, Saída Corrugada Branca,
@@ -863,6 +864,15 @@ export function runProductImageSelfCheck(): boolean {
       },
       expectedImg: ALUMINIO_PROTECAO_IMAGE,
     },
+    {
+      name: 'R14 Teflon',
+      product: {
+        sku: '4592',
+        name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+        brand: 'KORAX',
+      },
+      expectedImg: R14_TEFLON_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -890,10 +900,13 @@ export function runProductImageSelfCheck(): boolean {
     if (res === VACUO_AR_CINZA_IMAGE && line.name !== 'Sucção Cinza / Vácuo Ar Cinza') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou VACUO_AR_CINZA_IMAGE`)
     }
+    if (res === SUCCAO_AZUL_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou SUCCAO_AZUL_IMAGE`)
+    }
     if (res === ALUMINIO_PROTECAO_IMAGE && line.name !== 'Alumínio Proteção') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou ALUMINIO_PROTECAO_IMAGE`)
     }
-    if (res === R14_TEFLON_IMAGE) {
+    if (res === R14_TEFLON_IMAGE && line.name !== 'R14 Teflon') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou R14_TEFLON_IMAGE`)
     }
   }
@@ -1041,6 +1054,166 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === R14_TEFLON_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar R14_TEFLON_IMAGE`)
+    }
+  }
+
+  // --- Validação da Linha Sucção Azul / Vácuo Ar Azul (20ª linha fotografada) ---
+  // Casos positivos reais dos 7 SKUs no banco de dados e variações de acento/case:
+  const succaoAzulPositiveCases = [
+    { sku: '2747', name: 'MANGUEIRA SUCÇAO 3" AZUL', brand: 'KANAFLEX' },
+    { sku: '9023', name: 'MANGUEIRA VACUO AR 12" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '8093', name: 'MANGUEIRA VACUO AR 2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '3064', name: 'MANGUEIRA VACUO AR 2.1/2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '2977', name: 'MANGUEIRA VACUO AR 2.1/2" KEV AZUL REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '5177', name: 'MANGUEIRA VACUO AR 4" KEL-S AZUL ESCURO', brand: 'KANAFLEX' },
+    { sku: '2717', name: 'MANGUEIRA VACUO AR 5" KEL-S AZUL ESCURO', brand: 'KANAFLEX' },
+    // Variações de case, formato e acentuação:
+    { sku: '9601', name: 'MANGUEIRA SUCÇÃO 2" AZUL', brand: 'IBIRÁ' },
+    { sku: '9602', name: 'mangueira sucção azul 3"', brand: '' },
+    { sku: '9603', name: 'MANGUEIRA SUCCAO AZUL 4"', brand: 'GENÉRICA' },
+    { sku: '9604', name: 'mangueira vacuo ar azul reforçada', brand: 'KANAFLEX' },
+    { sku: '9605', name: 'MANGUEIRA VÁCUO AR AZUL ESCURO 3"', brand: '' },
+    { sku: '9606', name: 'MANGUEIRA SUCÇÃO AZUL', brand: '' },
+    { sku: '9607', name: 'MANGUEIRA VACUO AR AZUL', brand: '' },
+  ]
+
+  for (const item of succaoAzulPositiveCases) {
+    if (!isSuccaoAzul(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isSuccaoAzul`)
+    }
+    // Não pode casar com vácuo ar cinza nem sucção laranja
+    if (isSuccaoCinzaOuVacuoArCinza(item)) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoCinzaOuVacuoArCinza`,
+      )
+    }
+    if (isSuccaoLaranja(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoLaranja`)
+    }
+    if (getProductImage(item) !== SUCCAO_AZUL_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SUCCAO_AZUL_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SUCCAO_AZUL_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SUCCAO_AZUL_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre SUCCAO_AZUL_IMAGE
+  const customImgSuccaoAzul = {
+    sku: '2747',
+    name: 'MANGUEIRA SUCÇAO 3" AZUL',
+    brand: 'KANAFLEX',
+    image: 'https://exemplo.com/foto-especifica-azul.jpg',
+  }
+  if (getProductImage(customImgSuccaoAzul) !== 'https://exemplo.com/foto-especifica-azul.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre SUCCAO_AZUL_IMAGE')
+  }
+
+  // Precedência entre regras: Sucção Laranja tem prioridade sobre Azul em caso hipotético
+  const hipoteticoLaranjaAzul = {
+    sku: '9610',
+    name: 'MANGUEIRA SUCÇAO AZUL E LARANJA PESADA',
+    brand: 'IBIRA',
+  }
+  if (isSuccaoAzul(hipoteticoLaranjaAzul)) {
+    throw new Error('Item com laranja/pesada não deve casar com isSuccaoAzul')
+  }
+  if (getProductImage(hipoteticoLaranjaAzul) !== SUCCAO_LARANJA_IMAGE) {
+    throw new Error('Sucção Laranja deve prevalecer sobre Sucção Azul')
+  }
+
+  // Casos negativos obrigatórios para Sucção Azul:
+  // 1) Sucções transparentes com espiral azul (ISAL, KKM, KM)
+  // 2) Cinzas (IVCL, KEL-SC, KV e vácuo ar cinza)
+  // 3) Laranjas (ISLP, sucção pesada)
+  // 4) Pretas (KPU-BOR, KEL-SP), prata (SVE) e cobreada (IVPU)
+  // 5) Produtos azuis que NÃO são sucção nem vácuo ar (chata flat, lava auto, jardim, irrigação)
+  const succaoAzulNegativeCases = [
+    // 1) Transparentes com espiral azul:
+    { sku: '2212', name: 'MANGUEIRA SUCÇAO 1" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    {
+      sku: '2208',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    {
+      sku: '8450',
+      name: 'MANGUEIRA SUCÇAO 1/2" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    { sku: '4202', name: 'MANGUEIRA SUCÇAO 2" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    {
+      sku: '6763',
+      name: 'MANGUEIRA SUCÇAO 2.1/2" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    { sku: '6469', name: 'MANGUEIRA SUCÇAO 3" ISAL TRANSPARENTE C/ ESPIRAL AZUL', brand: 'IBIRÁ' },
+    {
+      sku: '5021',
+      name: 'MANGUEIRA SUCÇAO 3/4" ISAL TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'IBIRÁ',
+    },
+    {
+      sku: '1688',
+      name: 'MANGUEIRA SUCÇAO 2" KKM TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'KANAFLEX',
+    },
+    {
+      sku: '2807',
+      name: 'MANGUEIRA SUCÇAO 1.1/4" KKM TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'KANAFLEX',
+    },
+    {
+      sku: '2749',
+      name: 'MANGUEIRA SUCÇAO 1.1/2" KKM TRANSPARENTE C/ ESPIRAL AZUL',
+      brand: 'KANAFLEX',
+    },
+    { sku: '2735', name: 'MANGUEIRA 1" KM TRANSPARENTE COM ESPIRAL AZUL', brand: 'KANAFLEX' },
+
+    // 2) Cinzas:
+    { sku: '2210', name: 'MANGUEIRA VACUO AR 1" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '1624', name: 'MANGUEIRA VACUO AR 1" KEL-SC CINZA', brand: 'KANAFLEX' },
+    { sku: '4003', name: 'MANGUEIRA VACUO AR 1.3/4" KV CINZA REFORÇADA', brand: 'KANAFLEX' },
+    { sku: '5022', name: 'MANGUEIRA VACUO AR 3/4"', brand: '' },
+
+    // 3) Laranjas:
+    { sku: '2745', name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '9502', name: 'MANGUEIRA SUCÇÃO PESADA', brand: 'KANAFLEX' },
+
+    // 4) Pretas, prata e cobreada:
+    { sku: '6293', name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA', brand: 'KANAFLEX' },
+    { sku: '3168', name: 'MANGUEIRA VACUO AR 4" KPU-BOR PRETA', brand: 'KANAFLEX' },
+    { sku: '4108', name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', brand: 'CONTINENTAL' },
+    {
+      sku: '9276',
+      name: 'MANGUEIRA VACUO AR 1.1/2" IVPU PU-C TRANSPARENTE COBREADA',
+      brand: 'IBIRÁ',
+    },
+
+    // 5) Azuis que NÃO são sucção nem vácuo ar:
+    { sku: '4077', name: 'MANGUEIRA CHATA 2" AZUL FLAT', brand: 'IBIRÁ' },
+    {
+      sku: '6885',
+      name: 'MANGUEIRA CHATA FLAT 1.1/2" KORFLEX AZUL 5 BAR CONDUÇAO DE AGUA',
+      brand: 'KORAX',
+    },
+    { sku: '6532', name: 'MANGUEIRA CHATA FLAT 2" KORFLEX AZUL 5 BAR 100M', brand: 'KORAX' },
+    { sku: '6534', name: 'MANGUEIRA CHATA FLAT 3" KORFLEX AZUL 5 BAR 100M', brand: 'KORAX' },
+    { sku: '8416', name: 'MANGUEIRA CHATA FLAT 4" AZUL 20 BAR CONDUÇAO DE AGUA', brand: 'KORAX' },
+    { sku: '529', name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI', brand: 'KORAX' },
+    { sku: '2554', name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO', brand: 'SUNFLEX' },
+    { sku: '8379', name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL/PRETO', brand: 'SUNFLEX' },
+    { sku: '2497', name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA', brand: 'SUNFLEX' },
+    { sku: '9226', name: 'MANGUEIRA LISA IRRIGAÇÃO 3/4" PAREDE 3,0 MM AZUL 50M', brand: '' },
+  ]
+
+  for (const item of succaoAzulNegativeCases) {
+    if (isSuccaoAzul(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoAzul`)
+    }
+    if (getProductImage(item) === SUCCAO_AZUL_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SUCCAO_AZUL_IMAGE`)
     }
   }
 

@@ -15,6 +15,7 @@ import saidaCorrugadaBrancaImg from '@/assets/corrugadabranca-7439b.png'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
+import succaoAzulImg from '@/assets/succaoazul-1b2f4.png'
 import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
 import r14TeflonImg from '@/assets/tefloninox-5d491.png'
 
@@ -37,6 +38,7 @@ export const SAIDA_CORRUGADA_BRANCA_IMAGE = saidaCorrugadaBrancaImg
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
+export const SUCCAO_AZUL_IMAGE = succaoAzulImg
 export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 export const R14_TEFLON_IMAGE = r14TeflonImg
 
@@ -441,6 +443,54 @@ export function isSuccaoCinzaOuVacuoArCinza(
 }
 
 /**
+ * Checa se o produto pertence à linha Sucção Azul / Vácuo Ar Azul.
+ * Regra:
+ * - Deve conter "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" OU "VACUO AR" / "VÁCUO AR"
+ * - E simultaneamente conter "AZUL" (incluindo "AZUL REFORÇADA", "AZUL ESCURO", etc.)
+ * - SEM restrição de marca (Kanaflex, Ibirá ou genérica)
+ * Exclusões estritas (NÃO capturam a foto azul):
+ * - Sucções/vácuo ar TRANSPARENTES que apenas citam espiral azul (ex.: ISAL TRANSPARENTE C/ ESPIRAL AZUL,
+ *   KKM TRANSPARENTE C/ ESPIRAL AZUL, TRANSPARENTE COM ESPIRAL AZUL). Se tiver "transparente" ou "translúcid[ao]", NÃO pega.
+ * - Outras cores conflitantes no nome (laranja, cinza, preta, prata, verde, cobreada).
+ * - Produtos azuis que NÃO são sucção/vácuo ar (ex.: CHATA FLAT AZUL, LAVA AUTO AZUL, JARDIM AZUL, LISA IRRIGAÇÃO AZUL).
+ */
+export function isSuccaoAzul(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  // Se for sucção laranja/pesada, a regra laranja tem prioridade
+  if (isSuccaoLaranja(product)) {
+    return false
+  }
+
+  const text = getSubjectCombinedText(product)
+
+  // Deve ter termo de sucção ou vácuo ar
+  const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/i.test(text)
+  const hasVacuoAr = /\bv[aá]cuo\s+ar\b/i.test(text)
+  if (!hasSuccao && !hasVacuoAr) {
+    return false
+  }
+
+  // Deve ser azul de verdade
+  const hasAzul = /\bazul\b/i.test(text)
+  if (!hasAzul) {
+    return false
+  }
+
+  // Exclusão obrigatória: produtos transparentes/translúcidos com espiral azul
+  if (/\b(?:transparente?|transl[uú]cid[ao])\b/i.test(text)) {
+    return false
+  }
+
+  // Exclusões de outras cores conflitantes no nome
+  if (/\b(?:laranja|pesada|cinza|pret[ao]|prata|verde|cobread[ao])\b/i.test(text)) {
+    return false
+  }
+
+  return true
+}
+
+/**
  * Checa se o produto pertence à linha "Mangueira Flexível Alumínio Proteção".
  * Regra: exige simultaneamente as palavras "ALUMÍNIO" / "ALUMINIO" E "PROTEÇÃO" / "PROTECAO"
  * (case-insensitive e tolerante a acentuação) no texto consolidado do produto (nome + descrições).
@@ -495,9 +545,10 @@ export function isR14Teflon(product: ProductImageSubject | null | undefined): bo
  * 16. Se for da linha Saída Corrugada Branca, retorna a imagem oficial anexada (SAIDA_CORRUGADA_BRANCA_IMAGE)
  * 17. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
  * 18. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
- * 19. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
- * 20. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
- * 21. Fallback: placeholder genérico de produto
+ * 19. Se for da linha Sucção Azul / Vácuo Ar Azul, retorna a imagem oficial anexada (SUCCAO_AZUL_IMAGE)
+ * 20. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
+ * 21. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
+ * 22. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -585,6 +636,10 @@ export function getProductImage(
     return VACUO_AR_CINZA_IMAGE
   }
 
+  if (isSuccaoAzul(product)) {
+    return SUCCAO_AZUL_IMAGE
+  }
+
   if (isAluminioProtecao(product)) {
     return ALUMINIO_PROTECAO_IMAGE
   }
@@ -621,6 +676,7 @@ export function getProductImage(
  * - Se for Saída Corrugada Branca, retorna [SAIDA_CORRUGADA_BRANCA_IMAGE].
  * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
  * - Se for Sucção Cinza / Vácuo Ar Cinza, retorna [VACUO_AR_CINZA_IMAGE].
+ * - Se for Sucção Azul / Vácuo Ar Azul, retorna [SUCCAO_AZUL_IMAGE].
  * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
  * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
@@ -709,6 +765,10 @@ export function getProductImages(
 
   if (isSuccaoCinzaOuVacuoArCinza(product)) {
     return [VACUO_AR_CINZA_IMAGE]
+  }
+
+  if (isSuccaoAzul(product)) {
+    return [SUCCAO_AZUL_IMAGE]
   }
 
   if (isAluminioProtecao(product)) {
