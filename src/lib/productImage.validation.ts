@@ -8,6 +8,7 @@ import {
   isSaidaCorrugadaBranca,
   isSuccaoLaranja,
   isSuccaoCinzaOuVacuoArCinza,
+  isAluminioProtecao,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -27,13 +28,15 @@ import {
   SAIDA_DRENAGEM_IMAGE,
   SUCCAO_LARANJA_IMAGE,
   VACUO_AR_CINZA_IMAGE,
+  ALUMINIO_PROTECAO_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
- * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem, Sucção Laranja / Sucção Pesada
- * e proteção de precedência das 14 linhas anteriores.
+ * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem, Saída Corrugada Branca,
+ * Sucção Laranja / Sucção Pesada, Sucção Cinza / Vácuo Ar Cinza, Alumínio Proteção
+ * e proteção de precedência das 17 linhas anteriores.
  */
 export function runProductImageSelfCheck(): boolean {
   // Testes de marca
@@ -651,7 +654,92 @@ export function runProductImageSelfCheck(): boolean {
     }
   }
 
-  // Garantir que as 16 linhas anteriores continuam intactas e NÃO pegam SAIDA_CORRUGADA_BRANCA_IMAGE ou VACUO_AR_CINZA_IMAGE
+  // --- Validação da Linha Mangueira Flexível Alumínio Proteção (18ª linha fotografada) ---
+  // Casos positivos reais dos 7 produtos no PocketBase:
+  const aluminioProtecaoPositiveCases = [
+    { sku: '6354', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT', brand: '' },
+    { sku: '6355', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 32MM INT', brand: '' },
+    { sku: '9001', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 38MM INT', brand: '' },
+    { sku: '6356', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 45MM INT', brand: '' },
+    { sku: '6357', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 50MM INT', brand: '' },
+    { sku: '6358', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 63MM INT', brand: '' },
+    { sku: '6359', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 76MM INT', brand: '' },
+    // Variações de acentuação, grafia e case:
+    { sku: '9201', name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTECAO 50MM', brand: '' },
+    { sku: '9202', name: 'mangueira flexivel aluminio proteção', brand: '' },
+    { sku: '9203', name: 'mangueira flexível alumínio proteção 32mm', brand: 'GENÉRICA' },
+    { sku: '9204', name: 'TUBO ALUMINIO PROTEÇÃO TERMICA', brand: '' },
+    { sku: '9205', name: 'ALUMÍNIO PROTEÇÃO CORRUGADA 24MM', brand: '' },
+  ]
+
+  for (const item of aluminioProtecaoPositiveCases) {
+    if (!isAluminioProtecao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isAluminioProtecao`)
+    }
+    if (getProductImage(item) !== ALUMINIO_PROTECAO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou ALUMINIO_PROTECAO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== ALUMINIO_PROTECAO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [ALUMINIO_PROTECAO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre ALUMINIO_PROTECAO_IMAGE
+  const customImgAluminio = {
+    sku: '6354',
+    name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+    image: 'https://exemplo.com/foto-especifica-aluminio.jpg',
+  }
+  if (getProductImage(customImgAluminio) !== 'https://exemplo.com/foto-especifica-aluminio.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre ALUMINIO_PROTECAO_IMAGE')
+  }
+
+  // Casos negativos estritos para Alumínio Proteção:
+  // 1) Blindada Gás FG (outros produtos metálicos corrugados): NÃO deve casar com Alumínio Proteção
+  // 2) Palavras isoladas sem o par (apenas ALUMINIO sem PROTEÇÃO, ou apenas PROTEÇÃO sem ALUMINIO)
+  // 3) Outros produtos do catálogo
+  const aluminioProtecaoNegativeCases = [
+    // Blindada Gás FG Contuflex (SKUs reais do banco):
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+    },
+    {
+      sku: '5882',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 1,2 METROS',
+      brand: 'CONTUFLEX',
+    },
+    {
+      sku: '5881',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 1,0 METRO',
+      brand: 'CONTUFLEX',
+    },
+    // Apenas alumínio sem proteção:
+    { sku: '9301', name: 'MANGUEIRA FLEXIVEL ALUMINIO 50MM', brand: '' },
+    { sku: '9302', name: 'CONEXAO DE ALUMINIO 1/2"', brand: '' },
+    { sku: '9303', name: 'TUBO DE ALUMÍNIO FLEXÍVEL', brand: '' },
+    // Apenas proteção sem alumínio:
+    { sku: '9304', name: 'MOLA DE PROTEÇÃO PLASTICA PARA MANGUEIRA', brand: '' },
+    { sku: '9305', name: 'CAPA DE PROTECAO TERMICA SILICONE', brand: '' },
+    { sku: '9306', name: 'ESPIRAL DE PROTEÇÃO 1/2"', brand: '' },
+    // Outras mangueiras hidráulicas ou industriais:
+    { sku: '9307', name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"', brand: 'BALFLEX' },
+    { sku: '9308', name: 'MANGUEIRA CRISTAL LISA 1/2"', brand: 'IBIRÁ' },
+    { sku: '9309', name: 'MANGUEIRA VACUO AR 2" IVCL CINZA', brand: 'IBIRÁ' },
+  ]
+
+  for (const item of aluminioProtecaoNegativeCases) {
+    if (isAluminioProtecao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isAluminioProtecao`)
+    }
+    if (getProductImage(item) === ALUMINIO_PROTECAO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar ALUMINIO_PROTECAO_IMAGE`)
+    }
+  }
+
+  // Garantir que as 17 linhas anteriores continuam intactas e NÃO pegam ALUMINIO_PROTECAO_IMAGE
   const priorLines = [
     {
       name: 'Forza Uno Tropic',
@@ -737,6 +825,24 @@ export function runProductImageSelfCheck(): boolean {
       expectedImg: SUCCAO_LARANJA_IMAGE,
     },
     {
+      name: 'Saída Corrugada Branca',
+      product: {
+        sku: '8894',
+        name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+        brand: '',
+      },
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    {
+      name: 'Sucção Laranja / Pesada',
+      product: {
+        sku: '2745',
+        name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+        brand: 'IBIRÁ',
+      },
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    {
       name: 'Sucção Cinza / Vácuo Ar Cinza',
       product: {
         sku: '2210',
@@ -761,7 +867,7 @@ export function runProductImageSelfCheck(): boolean {
     if (res === SAIDA_DRENAGEM_IMAGE && line.name !== 'Saída Drenagem') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou SAIDA_DRENAGEM_IMAGE`)
     }
-    if (res === SAIDA_CORRUGADA_BRANCA_IMAGE) {
+    if (res === SAIDA_CORRUGADA_BRANCA_IMAGE && line.name !== 'Saída Corrugada Branca') {
       throw new Error(
         `Linha anterior ${line.name} indevidamente pegou SAIDA_CORRUGADA_BRANCA_IMAGE`,
       )
@@ -771,6 +877,9 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (res === VACUO_AR_CINZA_IMAGE && line.name !== 'Sucção Cinza / Vácuo Ar Cinza') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou VACUO_AR_CINZA_IMAGE`)
+    }
+    if (res === ALUMINIO_PROTECAO_IMAGE) {
+      throw new Error(`Linha anterior ${line.name} indevidamente pegou ALUMINIO_PROTECAO_IMAGE`)
     }
   }
 

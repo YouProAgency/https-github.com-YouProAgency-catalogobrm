@@ -15,6 +15,7 @@ import saidaCorrugadaBrancaImg from '@/assets/corrugadabranca-7439b.png'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
+import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -35,6 +36,7 @@ export const SAIDA_CORRUGADA_BRANCA_IMAGE = saidaCorrugadaBrancaImg
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
+export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -437,6 +439,21 @@ export function isSuccaoCinzaOuVacuoArCinza(
 }
 
 /**
+ * Checa se o produto pertence à linha "Mangueira Flexível Alumínio Proteção".
+ * Regra: exige simultaneamente as palavras "ALUMÍNIO" / "ALUMINIO" E "PROTEÇÃO" / "PROTECAO"
+ * (case-insensitive e tolerante a acentuação) no texto consolidado do produto (nome + descrições).
+ * SEM restrição de marca (os produtos do catálogo são sem marca).
+ * Não deve capturar outras mangueiras metálicas/corrugadas (ex: Blindada Gás FG, que não possui o par).
+ */
+export function isAluminioProtecao(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  const hasAluminio = /\balum[ií]nio\b/i.test(text)
+  const hasProtecao = /\bprote[cç][aãá]o\b/i.test(text)
+  return hasAluminio && hasProtecao
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -453,7 +470,11 @@ export function isSuccaoCinzaOuVacuoArCinza(
  * 13. Se for da linha Cristal Trançada, retorna a imagem oficial anexada (CRISTAL_TRANCADA_IMAGE) — precedência sobre Cristal genérica
  * 14. Se for da linha Cristal, retorna a imagem oficial anexada (CRISTAL_IMAGE)
  * 15. Se for da linha Saída Drenagem, retorna a imagem oficial anexada (SAIDA_DRENAGEM_IMAGE)
- * 16. Fallback: placeholder genérico de produto
+ * 16. Se for da linha Saída Corrugada Branca, retorna a imagem oficial anexada (SAIDA_CORRUGADA_BRANCA_IMAGE)
+ * 17. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
+ * 18. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
+ * 19. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
+ * 20. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -541,6 +562,10 @@ export function getProductImage(
     return VACUO_AR_CINZA_IMAGE
   }
 
+  if (isAluminioProtecao(product)) {
+    return ALUMINIO_PROTECAO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -566,6 +591,10 @@ export function getProductImage(
  * - Se for Cristal Trançada, retorna [CRISTAL_TRANCADA_IMAGE].
  * - Se for Cristal, retorna [CRISTAL_IMAGE].
  * - Se for Saída Drenagem, retorna [SAIDA_DRENAGEM_IMAGE].
+ * - Se for Saída Corrugada Branca, retorna [SAIDA_CORRUGADA_BRANCA_IMAGE].
+ * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
+ * - Se for Sucção Cinza / Vácuo Ar Cinza, retorna [VACUO_AR_CINZA_IMAGE].
+ * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -652,6 +681,10 @@ export function getProductImages(
 
   if (isSuccaoCinzaOuVacuoArCinza(product)) {
     return [VACUO_AR_CINZA_IMAGE]
+  }
+
+  if (isAluminioProtecao(product)) {
+    return [ALUMINIO_PROTECAO_IMAGE]
   }
 
   return [fallbackUrl]
