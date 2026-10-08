@@ -321,7 +321,7 @@ export default function AdminImport() {
           continue
         }
 
-        // Blindagem de SKUs excluídos permanentemente (ex.: SKU 2713 Supersteam)
+        // Blindagem de SKUs excluídos permanentemente (ex.: SKU 2713 Supersteam, SKU 1637 R2)
         if (isExcludedSku(rawSku)) {
           ignored++
           skuExcluidoCount++
@@ -642,14 +642,14 @@ export default function AdminImport() {
                   <span className="text-amber-600 block sm:inline sm:ml-2">
                     ({ignoredRowsCount} linhas ignoradas
                     {skuExcluidoIgnoredCount > 0 &&
-                      `, sendo ${skuExcluidoIgnoredCount} com SKU excluído permanente (ex: 2713)`}
+                      `, sendo ${skuExcluidoIgnoredCount} com SKU excluído permanente (ex: 1637, 2713)`}
                     {conformeAmostraIgnoredCount > 0 &&
                       `, sendo ${conformeAmostraIgnoredCount} "conforme amostra"`}
                     {eletrodieselIgnoredCount > 0 &&
                       `, sendo ${eletrodieselIgnoredCount} da marca "Eletrodiesel"`}
                     ).
                   </span>
-                )}
+                )}{' '}
               </CardDescription>
             </div>
 
@@ -891,8 +891,8 @@ export default function AdminImport() {
                 </h4>
                 <p className="text-xs text-amber-800">
                   {skuExcluidoIgnoredCount} linha(s) possuem SKU em lista de exclusão permanente
-                  (como o SKU 2713). Conforme a regra de negócio do catálogo BR Mangueiras, esses
-                  itens foram descartados e não são reimportados.
+                  (como SKU 1637 e SKU 2713). Conforme a regra de negócio do catálogo BR Mangueiras,
+                  esses itens foram descartados e não são reimportados.
                 </p>
               </div>
             )}
@@ -1008,8 +1008,9 @@ export default function AdminImport() {
             um item, o catálogo exibirá automaticamente a indicação "Consulte" ao invés de R$ 0,00.
           </p>
           <p>
-            • <strong>Bloqueio permanente de SKU (ex.: SKU 2713):</strong> Linhas com SKUs marcados
-            para exclusão definitiva são descartadas na importação e nunca reingressam no banco.
+            • <strong>Bloqueio permanente de SKU (ex.: SKU 1637, 2713):</strong> Linhas com SKUs
+            marcados para exclusão definitiva são descartadas na importação e nunca reingressam no
+            banco.
           </p>
           <p>
             • <strong>Filtro de itens "Conforme Amostra":</strong> Qualquer linha cujo nome ou

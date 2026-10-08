@@ -59,10 +59,11 @@ export function sanitizeProductUnit(
 
 /**
  * Lista de SKUs com exclusão permanente do catálogo BR Mangueiras.
- * O SKU 2713 ("mangueira 1 supersteam 270PSI W.P 2700PSI B.P Vermelha")
- * foi removido por solicitação de negócio e não deve reaparecer nem por reimportação.
+ * - SKU 2713 ("mangueira 1 supersteam 270PSI W.P 2700PSI B.P Vermelha")
+ * - SKU 1637 ("MANGUEIRA R2 2\" 80 BAR / 1160 PSI")
+ * Foram removidos por solicitação de negócio e não devem reaparecer nem por reimportação.
  */
-export const EXCLUDED_SKUS: ReadonlySet<string> = new Set(['2713'])
+export const EXCLUDED_SKUS: ReadonlySet<string> = new Set(['2713', '1637'])
 
 /**
  * Verifica se um SKU específico está na lista de exclusão permanente.
@@ -101,7 +102,7 @@ export function isConformeAmostra(item: {
 
 /**
  * Checagem abrangente se o produto deve ser excluído do catálogo público:
- * - SKUs bloqueados permanentemente (ex.: SKU 2713)
+ * - SKUs bloqueados permanentemente (ex.: SKU 2713, SKU 1637)
  * - Produtos "conforme amostra"
  * - Mangueiras da marca "Eletrodiesel"
  */
@@ -328,7 +329,7 @@ export async function upsertProductBatch(
 
   let totalRetriedBatches = 0
 
-  // Defensivamente filtra itens excluídos (SKU 2713, "conforme amostra" ou marca "Eletrodiesel") que possam ter sido passados
+  // Defensivamente filtra itens excluídos (SKUs bloqueados como 2713 e 1637, "conforme amostra" ou marca "Eletrodiesel") que possam ter sido passados
   const sanitizedProducts = products.filter((row) => {
     if (isExcludedProduct({ sku: row.sku, name: row.name, unit: row.unit, brand: row.brand })) {
       result.skippedCount++
