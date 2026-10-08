@@ -13,6 +13,7 @@ import koraxKobra1Img from '@/assets/korax-kobra1.ts'
 import koraxKobra2Img from '@/assets/korax-kobra2.ts'
 import saidaCorrugadaBrancaImg from '@/assets/corrugadabranca-7439b.png'
 import saidaDrenagemImg from '@/assets/saidadrenagem-1aa95.png'
+import saidaTanquinhoImg from '@/assets/saidatanquinho-a4036.png'
 import succaoLaranjaImg from '@/assets/succaolaranja-1c004.png'
 import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
 import succaoAzulImg from '@/assets/succaoazul-1b2f4.png'
@@ -36,6 +37,7 @@ export const KORAX_KOBRA1_IMAGE = koraxKobra1Img
 export const KORAX_KOBRA2_IMAGE = koraxKobra2Img
 export const SAIDA_CORRUGADA_BRANCA_IMAGE = saidaCorrugadaBrancaImg
 export const SAIDA_DRENAGEM_IMAGE = saidaDrenagemImg
+export const SAIDA_TANQUINHO_IMAGE = saidaTanquinhoImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
 export const SUCCAO_AZUL_IMAGE = succaoAzulImg
@@ -344,6 +346,24 @@ export function isSaidaCorrugadaBranca(product: ProductImageSubject | null | und
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Saída Tanquinho.
+ * Regra: exige a presença simultânea de "SAÍDA" / "SAIDA" E "TANQUINHO" como palavras inteiras
+ * no texto consolidado do produto (nome + descrições), case-insensitive e tolerante a acentuação,
+ * em qualquer ordem/posição (ex.: "MANGUEIRA SAIDA 1,27M TANQUINHO").
+ * SEM restrição de marca.
+ * Não deve capturar linhas irmãs de saída que já possuem foto própria:
+ * - Saída Drenagem (exige "DRENAGEM")
+ * - Saída Corrugada Branca (exige "CORRUGADA" E "BRANCA")
+ */
+export function isSaidaTanquinho(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  const hasSaida = /\bsa[ií]da\b/i.test(text)
+  const hasTanquinho = /\btanquinho\b/i.test(text)
+  return hasSaida && hasTanquinho
+}
+
+/**
  * Checa se o produto é uma mangueira da linha Sucção Laranja / Sucção Pesada.
  * Regra: analisa o texto consolidado do produto (nome + descrições) e casa quando
  * houver a palavra "SUCÇÃO" / "SUCCÃO" / "SUCÇAO" / "SUCCAO" (tolerante a acentos e cedilha, case-insensitive)
@@ -543,12 +563,13 @@ export function isR14Teflon(product: ProductImageSubject | null | undefined): bo
  * 14. Se for da linha Cristal, retorna a imagem oficial anexada (CRISTAL_IMAGE)
  * 15. Se for da linha Saída Drenagem, retorna a imagem oficial anexada (SAIDA_DRENAGEM_IMAGE)
  * 16. Se for da linha Saída Corrugada Branca, retorna a imagem oficial anexada (SAIDA_CORRUGADA_BRANCA_IMAGE)
- * 17. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
- * 18. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
- * 19. Se for da linha Sucção Azul / Vácuo Ar Azul, retorna a imagem oficial anexada (SUCCAO_AZUL_IMAGE)
- * 20. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
- * 21. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
- * 22. Fallback: placeholder genérico de produto
+ * 17. Se for da linha Saída Tanquinho, retorna a imagem oficial anexada (SAIDA_TANQUINHO_IMAGE)
+ * 18. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
+ * 19. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
+ * 20. Se for da linha Sucção Azul / Vácuo Ar Azul, retorna a imagem oficial anexada (SUCCAO_AZUL_IMAGE)
+ * 21. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
+ * 22. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
+ * 23. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -628,6 +649,10 @@ export function getProductImage(
     return SAIDA_CORRUGADA_BRANCA_IMAGE
   }
 
+  if (isSaidaTanquinho(product)) {
+    return SAIDA_TANQUINHO_IMAGE
+  }
+
   if (isSuccaoLaranja(product)) {
     return SUCCAO_LARANJA_IMAGE
   }
@@ -674,6 +699,7 @@ export function getProductImage(
  * - Se for Cristal, retorna [CRISTAL_IMAGE].
  * - Se for Saída Drenagem, retorna [SAIDA_DRENAGEM_IMAGE].
  * - Se for Saída Corrugada Branca, retorna [SAIDA_CORRUGADA_BRANCA_IMAGE].
+ * - Se for Saída Tanquinho, retorna [SAIDA_TANQUINHO_IMAGE].
  * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
  * - Se for Sucção Cinza / Vácuo Ar Cinza, retorna [VACUO_AR_CINZA_IMAGE].
  * - Se for Sucção Azul / Vácuo Ar Azul, retorna [SUCCAO_AZUL_IMAGE].
@@ -757,6 +783,10 @@ export function getProductImages(
 
   if (isSaidaCorrugadaBranca(product)) {
     return [SAIDA_CORRUGADA_BRANCA_IMAGE]
+  }
+
+  if (isSaidaTanquinho(product)) {
+    return [SAIDA_TANQUINHO_IMAGE]
   }
 
   if (isSuccaoLaranja(product)) {

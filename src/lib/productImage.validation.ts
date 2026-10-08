@@ -6,6 +6,7 @@ import {
   isCristal,
   isSaidaDrenagem,
   isSaidaCorrugadaBranca,
+  isSaidaTanquinho,
   isSuccaoLaranja,
   isSuccaoCinzaOuVacuoArCinza,
   isBlindadaGasFg,
@@ -29,6 +30,7 @@ import {
   CRISTAL_IMAGE,
   SAIDA_CORRUGADA_BRANCA_IMAGE,
   SAIDA_DRENAGEM_IMAGE,
+  SAIDA_TANQUINHO_IMAGE,
   SUCCAO_LARANJA_IMAGE,
   VACUO_AR_CINZA_IMAGE,
   SUCCAO_AZUL_IMAGE,
@@ -363,7 +365,7 @@ export function runProductImageSelfCheck(): boolean {
 
   // Casos negativos cruciais para Saída Corrugada Branca:
   // - Saída Drenagem (SKUs 8885 a 8893): mantém a foto própria de Saída Drenagem!
-  // - Saída Tanquinho (SKU 4523, SKU 4524): sem foto desta linha (retorna default)
+  // - Saída Tanquinho (SKU 4523, SKU 4524): sem foto desta linha (retorna default ou foto de Tanquinho)
   // - Corrugada sem saída ou sem branca
   // - Saída branca sem corrugada
   const saidaCorrugadaBrancaNegativeCases = [
@@ -399,6 +401,95 @@ export function runProductImageSelfCheck(): boolean {
         )
       }
     }
+  }
+
+  // --- Validação da Linha Saída Tanquinho (21ª linha fotografada) ---
+  // Casos positivos reais do banco (SKU 4523) e variações (com e sem acento, ordem de palavras, case):
+  const saidaTanquinhoPositiveCases = [
+    // Produto real do banco de dados (ordem não contígua: "SAIDA" + "1,27M" + "TANQUINHO")
+    { sku: '4523', name: 'MANGUEIRA SAIDA 1,27M TANQUINHO', brand: '' },
+    // Variações com acento no SAÍDA
+    { sku: '4526', name: 'MANGUEIRA SAÍDA 1,27M TANQUINHO', brand: '' },
+    // Minúsculo
+    { sku: '4527', name: 'mangueira saida 1,27m tanquinho', brand: '' },
+    { sku: '4528', name: 'mangueira saída tanquinho', brand: '' },
+    // Ordem diferente / palavras contíguas ou invertidas
+    { sku: '4529', name: 'MANGUEIRA SAIDA TANQUINHO 1,5M', brand: '' },
+    { sku: '4530', name: 'MANGUEIRA TANQUINHO SAIDA 2,0M', brand: 'IBIRÁ' },
+    { sku: '4531', name: 'MANGUEIRA SAIDA MAQUINA TANQUINHO 1,5M', brand: 'IBIRA' },
+    { sku: '4532', name: 'MANGUEIRA SAÍDA PARA TANQUINHO BRANCA', brand: 'GENÉRICA' },
+  ]
+
+  for (const item of saidaTanquinhoPositiveCases) {
+    if (!isSaidaTanquinho(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isSaidaTanquinho`)
+    }
+    // Não pode casar com Saída Drenagem nem Saída Corrugada Branca (salvo se tiver os termos específicos destas linhas)
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+    if (getProductImage(item) !== SAIDA_TANQUINHO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SAIDA_TANQUINHO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SAIDA_TANQUINHO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SAIDA_TANQUINHO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre SAIDA_TANQUINHO_IMAGE
+  const customImgTanquinho = {
+    sku: '4523',
+    name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+    image: 'https://exemplo.com/foto-especifica-tanquinho.jpg',
+  }
+  if (getProductImage(customImgTanquinho) !== 'https://exemplo.com/foto-especifica-tanquinho.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre SAIDA_TANQUINHO_IMAGE')
+  }
+
+  // Casos negativos cruciais para Saída Tanquinho:
+  // - Saída Drenagem (SKUs 8885 a 8893) NÃO devem casar com isSaidaTanquinho nem receber SAIDA_TANQUINHO_IMAGE
+  // - Saída Corrugada Branca (SKUs 8894 e 8895) NÃO devem casar com isSaidaTanquinho nem receber SAIDA_TANQUINHO_IMAGE
+  // - Tanquinho sem Saída
+  // - Saída sem Tanquinho
+  const saidaTanquinhoNegativeCases = [
+    { sku: '8885', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '7813', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 28MM', brand: 'IBIRÁ' },
+    { sku: '8887', name: 'MANGUEIRA SAIDA DRENAGEM 1,80M CINZA BOCAL RETO 28MM', brand: 'IBIRÁ' },
+    { sku: '8892', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL CURVO', brand: 'IBIRÁ' },
+    { sku: '8886', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '8890', name: 'MANGUEIRA SAIDA DRENAGEM 3,00M CINZA BOCAL CURVO', brand: 'IBIRÁ' },
+    { sku: '8891', name: 'MANGUEIRA SAIDA DRENAGEM 1,60M CINZA BOCAL CURVO 21MM', brand: '' },
+    { sku: '8893', name: 'MANGUEIRA SAIDA DRENAGEM 1,85M CINZA BOCAL CURVO 28MM', brand: '' },
+    { sku: '8888', name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL RETO 29MM', brand: '' },
+    { sku: '8889', name: 'MANGUEIRA SAIDA DRENAGEM 2,50M CINZA BOCAL RETO 29MM', brand: '' },
+    { sku: '8894', name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', brand: '' },
+    { sku: '8895', name: 'MANGUEIRA SAIDA CORRUGADA 2,0M 3/4" BRANCA', brand: '' },
+    { sku: '4599', name: 'MANGUEIRA TANQUINHO 1,27M', brand: '' }, // Tanquinho SEM saída
+    { sku: '4600', name: 'MANGUEIRA SAIDA MAQUINA DE LAVAR 1,5M', brand: '' }, // Saída sem tanquinho
+    { sku: '4601', name: 'MANGUEIRA ENTRADA TANQUINHO 1,20M', brand: '' }, // Entrada sem saída
+    { sku: '4602', name: 'BOCAL PARA TANQUINHO 22MM', brand: '' }, // Bocal sem saída
+    { sku: '4603', name: 'MANGUEIRA CRISTAL LISA 1/2"', brand: 'IBIRÁ' },
+  ]
+
+  for (const item of saidaTanquinhoNegativeCases) {
+    if (isSaidaTanquinho(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaTanquinho`)
+    }
+    if (getProductImage(item) === SAIDA_TANQUINHO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SAIDA_TANQUINHO_IMAGE`)
+    }
+  }
+
+  // Teste de precedência interna entre linhas irmãs de saída se hipoteticamente coexistirem:
+  // Saída Drenagem tem precedência sobre Saída Corrugada Branca e Saída Tanquinho
+  const hipoteticoDrenagemTanquinho = {
+    sku: '4699',
+    name: 'MANGUEIRA SAIDA DRENAGEM TANQUINHO 1,5M',
+    brand: 'IBIRÁ',
+  }
+  if (getProductImage(hipoteticoDrenagemTanquinho) !== SAIDA_DRENAGEM_IMAGE) {
+    throw new Error('Saída Drenagem deve prevalecer sobre Saída Tanquinho se termos coexistirem')
   }
 
   // --- Validação da Linha Sucção Laranja / Sucção Pesada ---
@@ -873,6 +964,15 @@ export function runProductImageSelfCheck(): boolean {
       },
       expectedImg: R14_TEFLON_IMAGE,
     },
+    {
+      name: 'Saída Tanquinho',
+      product: {
+        sku: '4523',
+        name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+        brand: '',
+      },
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
   ]
 
   for (const line of priorLines) {
@@ -908,6 +1008,9 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (res === R14_TEFLON_IMAGE && line.name !== 'R14 Teflon') {
       throw new Error(`Linha anterior ${line.name} indevidamente pegou R14_TEFLON_IMAGE`)
+    }
+    if (res === SAIDA_TANQUINHO_IMAGE && line.name !== 'Saída Tanquinho') {
+      throw new Error(`Linha ${line.name} indevidamente pegou SAIDA_TANQUINHO_IMAGE`)
     }
   }
 
