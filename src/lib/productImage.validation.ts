@@ -13,6 +13,7 @@ import {
   isSuccaoAzul,
   isAluminioProtecao,
   isR14Teflon,
+  isLisaIrrigacao,
   getProductImage,
   getProductImages,
   BALFLEX_FORZA_UNO_TROPIC_IMAGE,
@@ -36,13 +37,14 @@ import {
   SUCCAO_AZUL_IMAGE,
   ALUMINIO_PROTECAO_IMAGE,
   R14_TEFLON_IMAGE,
+  LISA_IRRIGACAO_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
  * Validação em tempo de compilação e execução para as regras de linhas de imagens,
  * incluindo Kobra 1, Kobra 2, Cristal Trançada, Cristal, Saída Drenagem, Saída Corrugada Branca,
- * Sucção Laranja / Sucção Pesada, Sucção Cinza / Vácuo Ar Cinza, Alumínio Proteção
- * e proteção de precedência das 17 linhas anteriores.
+ * Sucção Laranja / Sucção Pesada, Sucção Cinza / Vácuo Ar Cinza, Alumínio Proteção,
+ * R14 Teflon, Lisa Irrigação e proteção de precedência das linhas anteriores.
  */
 export function runProductImageSelfCheck(): boolean {
   // Testes de marca
@@ -1317,6 +1319,188 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === SUCCAO_AZUL_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SUCCAO_AZUL_IMAGE`)
+    }
+  }
+
+  // --- Validação da Linha Lisa Irrigação (23ª linha fotografada) ---
+  // Casos positivos reais dos 9 SKUs no banco de dados e variações de acento/case/ordem:
+  const lisaIrrigacaoPositiveCases = [
+    { sku: '861', name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M', brand: '' },
+    { sku: '860', name: 'MANGUEIRA LISA IRRIGAÇÃO 3/4" PAREDE 3,0 MM VERMELHO 100M', brand: '' },
+    { sku: '8467', name: 'MANGUEIRA LISA IRRIGAÇÃO 3/4" PAREDE 3,0 MM VERMELHO 50M', brand: '' },
+    { sku: '8650', name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 50M', brand: '' },
+    { sku: '6684', name: 'MANGUEIRA LISA IRRIGAÇÃO 1/2" PAREDE 3,0 MM VERMELHO 100M', brand: '' },
+    { sku: '8468', name: 'MANGUEIRA LISA IRRIGAÇÃO 1/2" PAREDE 3,0 MM 50M', brand: '' },
+    { sku: '813', name: 'MANGUEIRA LISA IRRIGAÇÃO 2" PAREDE 3,0 MM', brand: '' },
+    { sku: '2784', name: 'MANGUEIRA LISA IRRIGAÇÃO 1.1/2" PAREDE 3,0 MM 50M', brand: '' },
+    { sku: '9226', name: 'MANGUEIRA LISA IRRIGAÇÃO 3/4" PAREDE 3,0 MM AZUL 50M', brand: '' },
+    // Variações de case, formato, acentuação e ordem:
+    { sku: '9301', name: 'mangueira lisa irrigacao 1" 50m', brand: '' },
+    { sku: '9302', name: 'MANGUEIRA IRRIGAÇÃO LISA 3/4"', brand: 'GENÉRICA' },
+    { sku: '9303', name: 'mangueira irrigacao lisa parede 3mm', brand: '' },
+    { sku: '9304', name: 'MANGUEIRA LISA PARA IRRIGAÇÃO AGRÍCOLA', brand: '' },
+    {
+      sku: '9305',
+      name: 'MANGUEIRA AGRÍCOLA 1"',
+      description: 'Mangueira lisa irrigação parede reforçada',
+      brand: '',
+    },
+  ]
+
+  for (const item of lisaIrrigacaoPositiveCases) {
+    if (!isLisaIrrigacao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isLisaIrrigacao`)
+    }
+    // Não deve casar com outras linhas de imagem
+    if (isSuccaoAzul(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSuccaoAzul`)
+    }
+    if (isCristal(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristal`)
+    }
+    if (isR14Teflon(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isR14Teflon`)
+    }
+    if (getProductImage(item) !== LISA_IRRIGACAO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou LISA_IRRIGACAO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== LISA_IRRIGACAO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [LISA_IRRIGACAO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria sobre LISA_IRRIGACAO_IMAGE
+  const customImgLisaIrrigacao = {
+    sku: '861',
+    name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+    image: 'https://exemplo.com/foto-especifica-irrigacao.jpg',
+  }
+  if (
+    getProductImage(customImgLisaIrrigacao) !== 'https://exemplo.com/foto-especifica-irrigacao.jpg'
+  ) {
+    throw new Error('Imagem própria do produto deve ter precedência sobre LISA_IRRIGACAO_IMAGE')
+  }
+
+  // Casos negativos obrigatórios para Lisa Irrigação:
+  // 1) Produtos que possuem "LISA" mas NÃO são irrigação:
+  //    - R17 Balflex Lisa (10017, 5340, 8258)
+  //    - Cristal Lisa (6980, 10033, 300, 4236, etc. - já têm foto própria Cristal)
+  //    - Jardim Lisa (790 preta, 2497 azul)
+  //    - Ar e Água Lisa / Euro (se houver)
+  // 2) Produtos que possuem "IRRIGAÇÃO" mas NÃO são lisa (ex.: chata flat irrigação, gotejamento)
+  // 3) Amostras das 21 linhas fotografadas anteriormente para garantir não-regressão
+  const lisaIrrigacaoNegativeCases = [
+    // 1) Tem LISA sem IRRIGAÇÃO:
+    {
+      sku: '10017',
+      name: 'MANGUEIRA R17 1/2" BALPAC 3000 LISA 21 MPA / 3045 PSI / 210BAR',
+      brand: 'BALFLEX',
+    },
+    {
+      sku: '5340',
+      name: 'MANGUEIRA R17 1/4" BALPAC 3000 LISA 22,5 MPA / 3263 PSI / 225 BAR',
+      brand: 'BALFLEX',
+    },
+    {
+      sku: '8258',
+      name: 'MANGUEIRA R17 3/8" BALPAC 3000 LISA 21 MPA / 3045 PSI / 210 BAR',
+      brand: 'BALFLEX',
+    },
+    { sku: '6980', name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS', brand: 'IBIRA' },
+    { sku: '300', name: 'MANGUEIRA CRISTAL LISA 1" X 2,0MM 50 LBS', brand: 'IBIRÁ' },
+    { sku: '790', name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 PRETA LISA', brand: 'SUNFLEX' },
+    { sku: '2497', name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA', brand: 'SUNFLEX' },
+    { sku: '9310', name: 'MANGUEIRA AR E ÁGUA 300 5/16 LISA/EURO', brand: 'CONTINENTAL' },
+    { sku: '9311', name: 'MANGUEIRA BORRACHA LISA 1/2"', brand: '' },
+
+    // 2) Tem IRRIGAÇÃO sem LISA:
+    { sku: '9320', name: 'MANGUEIRA CHATA FLAT IRRIGAÇÃO 2"', brand: 'KORAX' },
+    { sku: '9321', name: 'TUBO GOTEJAMENTO IRRIGAÇÃO 16MM', brand: '' },
+    { sku: '9322', name: 'MANGUEIRA PARA IRRIGAÇÃO ESPIRALADA 1"', brand: '' },
+
+    // 3) Não-regressão das 21 linhas de catálogo anteriores:
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    {
+      sku: '4523',
+      name: 'MANGUEIRA SAIDA 1,27M TANQUINHO',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: '2747',
+      name: 'MANGUEIRA SUCÇAO 3" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    {
+      sku: '4592',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+  ]
+
+  for (const item of lisaIrrigacaoNegativeCases) {
+    if (isLisaIrrigacao(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLisaIrrigacao`)
+    }
+    if (getProductImage(item) === LISA_IRRIGACAO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar LISA_IRRIGACAO_IMAGE`)
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
     }
   }
 

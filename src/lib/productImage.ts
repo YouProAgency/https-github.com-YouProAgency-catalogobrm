@@ -19,6 +19,7 @@ import vacuoArCinzaImg from '@/assets/vacuoarcinza-4fbba.png'
 import succaoAzulImg from '@/assets/succaoazul-1b2f4.png'
 import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
 import r14TeflonImg from '@/assets/tefloninox-5d491.png'
+import lisaIrrigacaoImg from '@/assets/irrigacaolisa-68fc2.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -43,6 +44,7 @@ export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
 export const SUCCAO_AZUL_IMAGE = succaoAzulImg
 export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 export const R14_TEFLON_IMAGE = r14TeflonImg
+export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -546,6 +548,28 @@ export function isR14Teflon(product: ProductImageSubject | null | undefined): bo
 }
 
 /**
+ * Checa se o produto pertence à linha "Mangueira Lisa Irrigação".
+ * Regra: exige SIMULTANEAMENTE a presença de "LISA" e "IRRIGAÇÃO" / "IRRIGACAO"
+ * (case-insensitive e tolerante a acentuação) no texto consolidado do produto (nome + descrições).
+ * SEM restrição de marca (os produtos da linha não têm marca cadastrada).
+ * A exigência de ambos os termos exclui produtos como:
+ * - Mangueiras R17 ... LISA (Balflex)
+ * - Mangueiras Cristal Lisa (precedência Cristal/Cristal Trançada e sem "irrigação")
+ * - Mangueiras Jardim ... Lisa
+ * - Mangueiras Ar e Água ... Lisa
+ * - Mangueiras de irrigação sem "lisa"
+ */
+export function isLisaIrrigacao(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasLisa = /\blisa\b/i.test(text)
+  const hasIrrigacao = /\birriga[cç][aãá]o\b/i.test(text)
+
+  return hasLisa && hasIrrigacao
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -569,7 +593,8 @@ export function isR14Teflon(product: ProductImageSubject | null | undefined): bo
  * 20. Se for da linha Sucção Azul / Vácuo Ar Azul, retorna a imagem oficial anexada (SUCCAO_AZUL_IMAGE)
  * 21. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
  * 22. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
- * 23. Fallback: placeholder genérico de produto
+ * 23. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
+ * 24. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -673,6 +698,10 @@ export function getProductImage(
     return R14_TEFLON_IMAGE
   }
 
+  if (isLisaIrrigacao(product)) {
+    return LISA_IRRIGACAO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -705,6 +734,7 @@ export function getProductImage(
  * - Se for Sucção Azul / Vácuo Ar Azul, retorna [SUCCAO_AZUL_IMAGE].
  * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
  * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
+ * - Se for Lisa Irrigação, retorna [LISA_IRRIGACAO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -807,6 +837,10 @@ export function getProductImages(
 
   if (isR14Teflon(product)) {
     return [R14_TEFLON_IMAGE]
+  }
+
+  if (isLisaIrrigacao(product)) {
+    return [LISA_IRRIGACAO_IMAGE]
   }
 
   return [fallbackUrl]
