@@ -20,6 +20,7 @@ import succaoAzulImg from '@/assets/succaoazul-1b2f4.png'
 import aluminioProtecaoImg from '@/assets/aluminioprotecao-f6034.png'
 import r14TeflonImg from '@/assets/tefloninox-5d491.png'
 import lisaIrrigacaoImg from '@/assets/irrigacaolisa-68fc2.png'
+import vacuoArPretaImg from '@/assets/vacuoarpreta-830f3.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -42,6 +43,7 @@ export const SAIDA_TANQUINHO_IMAGE = saidaTanquinhoImg
 export const SUCCAO_LARANJA_IMAGE = succaoLaranjaImg
 export const VACUO_AR_CINZA_IMAGE = vacuoArCinzaImg
 export const SUCCAO_AZUL_IMAGE = succaoAzulImg
+export const VACUO_AR_PRETA_IMAGE = vacuoArPretaImg
 export const ALUMINIO_PROTECAO_IMAGE = aluminioProtecaoImg
 export const R14_TEFLON_IMAGE = r14TeflonImg
 export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
@@ -513,6 +515,65 @@ export function isSuccaoAzul(product: ProductImageSubject | null | undefined): b
 }
 
 /**
+ * Checa se o produto pertence à linha Mangueira Vácuo Ar Preta / Mangueira Sucção Preta.
+ * Regra:
+ * 1. Exige termo de sucção/vácuo: "SUCÇÃO" / "SUCÇAO" / "SUCCÃO" / "SUCCAO" OU "VACUO AR" / "VÁCUO AR"
+ *    (case-insensitive, tolerante a acentuação e cedilha) no texto consolidado (nome + descrições).
+ * 2. Exige cor PRETA: "PRETA" ou "PRETO" (case-insensitive, limite de palavra: \bpret[ao]\b).
+ * 3. Precedência: se casar com Sucção Laranja, Sucção Cinza ou Sucção Azul, não é capturado por esta regra.
+ * 4. Exclusões estritas (NÃO devem receber esta foto):
+ *    - "Ar e Água Preta" e outras mangueiras pretas que NÃO sejam sucção/vácuo ar;
+ *    - "Jardim Preta" e "Jardim AZUL/PRETO";
+ *    - Cores conflitantes no nome: cinza, laranja, pesada, azul, prata, transparente, translúcida, cobreada, verde;
+ *    - Modelos de outras cores conhecidas: IVCL, KEL-SC, KV, KEV, KEL-S, SVE, IVPU, ISAL, KKM, KKE, ISAM, KA, ISLP.
+ * 5. SEM restrição de marca (cobre KEL-SP, KPU-BOR da Kanaflex e qualquer fabricante futuro).
+ */
+export function isVacuoArPreta(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  // Precedência de linhas de sucção anteriores
+  if (isSuccaoLaranja(product) || isSuccaoCinzaOuVacuoArCinza(product) || isSuccaoAzul(product)) {
+    return false
+  }
+
+  const text = getSubjectCombinedText(product)
+
+  // Deve ter termo de sucção ou vácuo ar
+  const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/i.test(text)
+  const hasVacuoAr = /\bv[aá]cuo\s+ar\b/i.test(text)
+  if (!hasSuccao && !hasVacuoAr) {
+    return false
+  }
+
+  // Exige cor PRETA / PRETO como palavra completa
+  const hasPreta = /\bpret[ao]\b/i.test(text)
+  if (!hasPreta) {
+    return false
+  }
+
+  // Exclusões de mangueiras que não são da linha sucção/vácuo ar mesmo se contiverem texto espúrio
+  if (/\b(?:jardim|ar\s+e\s+[aá]gua)\b/i.test(text)) {
+    return false
+  }
+
+  // Exclusões de cores conflitantes
+  if (
+    /\b(?:cinza|laranja|pesada|azul|prata|verde|transparente?|transl[uú]cid[ao]|cobread[ao]|at[oó]xic[ao]|arame)\b/i.test(
+      text,
+    )
+  ) {
+    return false
+  }
+
+  // Exclusões de modelos/séries de outras cores/linhas conhecidas
+  if (/\b(?:ivcl|kel-sc|kv|kev|kel-s|sve|ivpu|isal|kkm|kke|isam|ka|islp)\b/i.test(text)) {
+    return false
+  }
+
+  return true
+}
+
+/**
  * Checa se o produto pertence à linha "Mangueira Flexível Alumínio Proteção".
  * Regra: exige simultaneamente as palavras "ALUMÍNIO" / "ALUMINIO" E "PROTEÇÃO" / "PROTECAO"
  * (case-insensitive e tolerante a acentuação) no texto consolidado do produto (nome + descrições).
@@ -591,10 +652,11 @@ export function isLisaIrrigacao(product: ProductImageSubject | null | undefined)
  * 18. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
  * 19. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
  * 20. Se for da linha Sucção Azul / Vácuo Ar Azul, retorna a imagem oficial anexada (SUCCAO_AZUL_IMAGE)
- * 21. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
- * 22. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
- * 23. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
- * 24. Fallback: placeholder genérico de produto
+ * 21. Se for da linha Vácuo Ar Preta / Sucção Preta, retorna a imagem oficial anexada (VACUO_AR_PRETA_IMAGE)
+ * 22. Se for da linha Alumínio Proteção, retorna a imagem oficial anexada (ALUMINIO_PROTECAO_IMAGE)
+ * 23. Se for da linha R14 Teflon (Korax), retorna a imagem oficial anexada (R14_TEFLON_IMAGE)
+ * 24. Se for da linha Lisa Irrigação, retorna a imagem oficial anexada (LISA_IRRIGACAO_IMAGE)
+ * 25. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -690,6 +752,10 @@ export function getProductImage(
     return SUCCAO_AZUL_IMAGE
   }
 
+  if (isVacuoArPreta(product)) {
+    return VACUO_AR_PRETA_IMAGE
+  }
+
   if (isAluminioProtecao(product)) {
     return ALUMINIO_PROTECAO_IMAGE
   }
@@ -732,6 +798,7 @@ export function getProductImage(
  * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
  * - Se for Sucção Cinza / Vácuo Ar Cinza, retorna [VACUO_AR_CINZA_IMAGE].
  * - Se for Sucção Azul / Vácuo Ar Azul, retorna [SUCCAO_AZUL_IMAGE].
+ * - Se for Vácuo Ar Preta / Sucção Preta, retorna [VACUO_AR_PRETA_IMAGE].
  * - Se for Alumínio Proteção, retorna [ALUMINIO_PROTECAO_IMAGE].
  * - Se for R14 Teflon (Korax), retorna [R14_TEFLON_IMAGE].
  * - Se for Lisa Irrigação, retorna [LISA_IRRIGACAO_IMAGE].
@@ -829,6 +896,10 @@ export function getProductImages(
 
   if (isSuccaoAzul(product)) {
     return [SUCCAO_AZUL_IMAGE]
+  }
+
+  if (isVacuoArPreta(product)) {
+    return [VACUO_AR_PRETA_IMAGE]
   }
 
   if (isAluminioProtecao(product)) {
