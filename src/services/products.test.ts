@@ -75,10 +75,10 @@ export function runExcludedProductsSelfCheck() {
     throw new Error('SKU 7970 foi incorretamente considerado excluído')
   }
 
-  // 6. SKU 3273 (R14 Teflon Korax) deve permanecer válido
+  // 6. SKU 3273 (R14 Teflon KORAX) deve permanecer válido com marca canônica KORAX ou Korax
   if (
     isExcludedSku('3273') ||
-    isExcludedProduct({ sku: '3273', name: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI', brand: 'Korax' })
+    isExcludedProduct({ sku: '3273', name: 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI', brand: 'KORAX' })
   ) {
     throw new Error('SKU 3273 foi incorretamente considerado excluído')
   }

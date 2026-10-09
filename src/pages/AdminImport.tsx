@@ -49,6 +49,7 @@ import {
   isEletrodiesel,
   sanitizeProductUnit,
 } from '@/services/products'
+import { normalizeProductBrand } from '@/lib/brand'
 import { formatCurrencyBRL } from '@/lib/utils'
 
 function parsePrice(val: any): number | null {
@@ -343,11 +344,13 @@ export default function AdminImport() {
 
         const rawCategory =
           row[colMap.category] !== undefined ? String(row[colMap.category]).trim() : ''
-        let rawBrand = row[colMap.brand] !== undefined ? String(row[colMap.brand]).trim() : ''
+        let rawBrand = normalizeProductBrand(
+          row[colMap.brand] !== undefined ? String(row[colMap.brand]) : '',
+        )
 
-        // Preserva a marca oficial Korax para o SKU 3273
+        // Preserva a marca canônica KORAX para o SKU 3273
         if (rawSku === '3273' && (!rawBrand || rawBrand.toUpperCase() === 'KORAX')) {
-          rawBrand = 'Korax'
+          rawBrand = 'KORAX'
         }
 
         // Pula produtos cuja descrição/nome/unidade contenha "conforme amostra"

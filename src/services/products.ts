@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import { Product } from '@/types'
+import { normalizeProductBrand } from '@/lib/brand'
 
 export interface DbProductRecord {
   id: string
@@ -357,10 +358,10 @@ export async function upsertProductBatch(
 
           // Casos específicos de SKUs com descrição e/ou marca customizadas aprovadas:
           // 1) SKU 7970: descrição oficial ("MANGUEIRA R5 13/32\" BRAKEMASTER 2.100 PSI / 13,8 MPA")
-          // 2) SKU 3273: descrição oficial ("MANGUEIRA R14 5/16\" TEFLON 1.520 PSI") e marca "Korax"
+          // 2) SKU 3273: descrição oficial ("MANGUEIRA R14 5/16\" TEFLON 1.520 PSI") e marca canônica "KORAX"
           let resolvedName = row.name.trim()
           let resolvedDescription: string | undefined = undefined
-          let resolvedBrand = row.brand.trim()
+          let resolvedBrand = normalizeProductBrand(row.brand)
 
           if (cleanSku === '7970') {
             const officialCustomDesc = 'MANGUEIRA R5 13/32" BRAKEMASTER 2.100 PSI / 13,8 MPA'
@@ -374,7 +375,6 @@ export async function upsertProductBatch(
             }
           } else if (cleanSku === '3273') {
             const officialCustomDesc = 'MANGUEIRA R14 5/16" TEFLON 1.520 PSI'
-            const officialCustomBrand = 'Korax'
             if (
               !resolvedName ||
               resolvedName.toUpperCase() === 'MANGUEIRA R14 5/16" TEFLON' ||
@@ -384,7 +384,7 @@ export async function upsertProductBatch(
               resolvedDescription = officialCustomDesc
             }
             if (!resolvedBrand || resolvedBrand.toUpperCase() === 'KORAX' || resolvedBrand === '') {
-              resolvedBrand = officialCustomBrand
+              resolvedBrand = 'KORAX'
             }
           }
 
