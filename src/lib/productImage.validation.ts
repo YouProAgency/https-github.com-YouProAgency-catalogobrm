@@ -5,6 +5,7 @@ import {
   isCristalTrancada,
   isCristal,
   isSaidaDrenagem,
+  isMangueiraEntrada,
   isSaidaCorrugadaBranca,
   isSaidaTanquinho,
   isSuccaoLaranja,
@@ -318,6 +319,71 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === SAIDA_DRENAGEM_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar SAIDA_DRENAGEM_IMAGE`)
+    }
+  }
+
+  // --- Validação da Linha Mangueira Entrada (reutiliza SAIDA_DRENAGEM_IMAGE) ---
+  // Casos positivos reais do banco (SKUs 4711, 4712, 7221, 1626, 2783, 1636) e variações
+  const mangueiraEntradaPositiveCases = [
+    { sku: '4711', name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS', brand: '' },
+    { sku: '4712', name: 'MANGUEIRA ENTRADA 3/8" X 3,0M CINZA VAL 14FIOS', brand: '' },
+    { sku: '7221', name: 'MANGUEIRA ENTRADA 3/8" X 1,40 MT CINZA VAL 14FIOS', brand: '' },
+    { sku: '1626', name: 'MANGUEIRA ENTRADA 3/8" X 1,80 MT CINZA VAL 14FIOS', brand: '' },
+    { sku: '2783', name: 'MANGUEIRA ENTRADA 3/8" X 2,00 MT CINZA VAL 14FIOS', brand: '' },
+    { sku: '1636', name: 'MANGUEIRA ENTRADA 3/8" X 5,00 MT CINZA VAL 14FIOS', brand: '' },
+    // Variações case, com marca ou sem "cinza"
+    { sku: '7901', name: 'mangueira entrada 3/8" maquina de lavar', brand: '' },
+    { sku: '7902', name: "MANGUEIRA ENTRADA D'AGUA 1,5M", brand: 'IBIRÁ' },
+    { sku: '7903', name: 'MANGUEIRA ENTRADA 1/2" VAL 14 FIOS', brand: 'GENERICA' },
+  ]
+
+  for (const item of mangueiraEntradaPositiveCases) {
+    if (!isMangueiraEntrada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isMangueiraEntrada`)
+    }
+    // Não deve casar com isSaidaDrenagem (não tem 'saida' nem 'drenagem')
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+    // Deve retornar a mesma imagem da Saída Drenagem
+    if (getProductImage(item) !== SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) não retornou SAIDA_DRENAGEM_IMAGE para Mangueira Entrada`,
+      )
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SAIDA_DRENAGEM_IMAGE) {
+      throw new Error(
+        `Item ${item.sku} galeria não retornou [SAIDA_DRENAGEM_IMAGE] para Mangueira Entrada`,
+      )
+    }
+  }
+
+  // Precedência de imagem própria do produto sobre Mangueira Entrada
+  const customImgEntrada = {
+    sku: '4711',
+    name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS',
+    image: 'https://exemplo.com/foto-especifica-entrada.jpg',
+  }
+  if (getProductImage(customImgEntrada) !== 'https://exemplo.com/foto-especifica-entrada.jpg') {
+    throw new Error(
+      'Imagem própria do produto deve ter precedência sobre a imagem de Mangueira Entrada',
+    )
+  }
+
+  // Casos negativos para Mangueira Entrada (palavras que não são "entrada" como palavra inteira)
+  const mangueiraEntradaNegativeCases = [
+    { sku: '7910', name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', brand: '' },
+    { sku: '7911', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
+    { sku: '7912', name: 'MANGUEIRA SUCÇÃO 2" ISLP LARANJA', brand: 'IBIRÁ' },
+    { sku: '7913', name: 'MANGUEIRA VACUO AR 1" IVCL CINZA', brand: 'IBIRÁ' },
+    { sku: '7914', name: 'CONEXAO REENTRADA 1/2"', brand: '' }, // "reentrada" não é "entrada"
+    { sku: '7915', name: 'CENTRAL TELEFONICA', brand: '' },
+  ]
+
+  for (const item of mangueiraEntradaNegativeCases) {
+    if (isMangueiraEntrada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isMangueiraEntrada`)
     }
   }
 
@@ -746,7 +812,7 @@ export function runProductImageSelfCheck(): boolean {
     // 8) Produtos com CINZA mas SEM sucção nem vácuo ar (devem ir para suas fotos ou default)
     // Ex: Saída Drenagem cinza (sku 8885)
     { sku: '8885', name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', brand: 'IBIRÁ' },
-    // Ex: Mangueira entrada cinza (sku 4711)
+    // Ex: Mangueira entrada cinza (sku 4711) - não deve casar com Sucção Cinza
     { sku: '4711', name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS', brand: '' },
   ]
 
@@ -2799,13 +2865,13 @@ export function runProductImageSelfCheck(): boolean {
     // "Lava" isolado sem "auto"
     {
       sku: '9850',
-      name: 'MANGUEIRA ENTRADA LAVA ROUPA 1,5M',
+      name: 'MANGUEIRA ALIMENTACAO LAVA ROUPA 1,5M',
       brand: 'IBIRA',
       expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
     },
     {
       sku: '9851',
-      name: 'MANGUEIRA SAIDA LAVA LOUCAS 2M',
+      name: 'MANGUEIRA ESGOTO LAVA LOUCAS 2M',
       brand: 'IBIRA',
       expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
     },
@@ -2990,6 +3056,13 @@ export function runProductImageSelfCheck(): boolean {
       name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
       brand: '',
       expectedImg: GAS_PVC_IMAGE,
+    },
+    // 26. Mangueira Entrada (reutiliza SAIDA_DRENAGEM_IMAGE)
+    {
+      sku: '4711',
+      name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS',
+      brand: '',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
     },
   ]
 

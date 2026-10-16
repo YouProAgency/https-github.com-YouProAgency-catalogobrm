@@ -337,6 +337,20 @@ export function isSaidaDrenagem(product: ProductImageSubject | null | undefined)
 }
 
 /**
+ * Checa se o produto é uma mangueira da linha Entrada ("MANGUEIRA ENTRADA").
+ * Regra: casa quando o texto consolidado do produto (nome + descrições) contém
+ * a palavra inteira "ENTRADA" (/\bentrada\b/i), tolerante a acentuação e case-insensitive.
+ * Reutiliza a mesma imagem de SAIDA_DRENAGEM_IMAGE conforme solicitação do catálogo BRM.
+ * Não exige marca nem cor nem "drenagem", cobrindo os SKUs 4711, 4712, 7221, 1626, 2783, 1636
+ * e futuras importações de mangueiras de entrada.
+ */
+export function isMangueiraEntrada(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+  const text = getSubjectCombinedText(product)
+  return /\bentrada\b/i.test(text)
+}
+
+/**
  * Checa se o produto é uma mangueira da linha Saída Corrugada Branca.
  * Regra: exige a presença simultânea dos termos que caracterizam a linha:
  * "SAÍDA" / "SAIDA" E "CORRUGADA" E "BRANCA"
@@ -734,7 +748,8 @@ export function isLavaAuto(product: ProductImageSubject | null | undefined): boo
  * 13. Se for da linha Cristal Trançada, retorna a imagem oficial anexada (CRISTAL_TRANCADA_IMAGE) — precedência sobre Cristal genérica
  * 14. Se for da linha Cristal, retorna a imagem oficial anexada (CRISTAL_IMAGE)
  * 15. Se for da linha Saída Drenagem, retorna a imagem oficial anexada (SAIDA_DRENAGEM_IMAGE)
- * 16. Se for da linha Saída Corrugada Branca, retorna a imagem oficial anexada (SAIDA_CORRUGADA_BRANCA_IMAGE)
+ * 16. Se for da linha Mangueira Entrada, reutiliza a imagem da Saída Drenagem (SAIDA_DRENAGEM_IMAGE)
+ * 17. Se for da linha Saída Corrugada Branca, retorna a imagem oficial anexada (SAIDA_CORRUGADA_BRANCA_IMAGE)
  * 17. Se for da linha Saída Tanquinho, retorna a imagem oficial anexada (SAIDA_TANQUINHO_IMAGE)
  * 18. Se for da linha Sucção Laranja / Pesada, retorna a imagem oficial anexada (SUCCAO_LARANJA_IMAGE)
  * 19. Se for da linha Sucção Cinza / Vácuo Ar Cinza, retorna a imagem oficial anexada (VACUO_AR_CINZA_IMAGE)
@@ -822,6 +837,10 @@ export function getProductImage(
     return SAIDA_DRENAGEM_IMAGE
   }
 
+  if (isMangueiraEntrada(product)) {
+    return SAIDA_DRENAGEM_IMAGE
+  }
+
   if (isSaidaCorrugadaBranca(product)) {
     return SAIDA_CORRUGADA_BRANCA_IMAGE
   }
@@ -895,6 +914,7 @@ export function getProductImage(
  * - Se for Cristal Trançada, retorna [CRISTAL_TRANCADA_IMAGE].
  * - Se for Cristal, retorna [CRISTAL_IMAGE].
  * - Se for Saída Drenagem, retorna [SAIDA_DRENAGEM_IMAGE].
+ * - Se for Mangueira Entrada, reutiliza [SAIDA_DRENAGEM_IMAGE].
  * - Se for Saída Corrugada Branca, retorna [SAIDA_CORRUGADA_BRANCA_IMAGE].
  * - Se for Saída Tanquinho, retorna [SAIDA_TANQUINHO_IMAGE].
  * - Se for Sucção Laranja / Pesada, retorna [SUCCAO_LARANJA_IMAGE].
@@ -980,6 +1000,10 @@ export function getProductImages(
   }
 
   if (isSaidaDrenagem(product)) {
+    return [SAIDA_DRENAGEM_IMAGE]
+  }
+
+  if (isMangueiraEntrada(product)) {
     return [SAIDA_DRENAGEM_IMAGE]
   }
 
