@@ -50,7 +50,9 @@ import {
   LAVA_AUTO_IMAGE,
   SILICONE_TRANSLUCIDA_IMAGE,
   LIMPADOR_PARABRISA_IMAGE,
+  CHUVEIRO_IMAGE,
   isLimpadorParabrisa,
+  isChuveiro,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -3762,6 +3764,344 @@ export function runProductImageSelfCheck(): boolean {
     }
     if (getProductImage(item) === LIMPADOR_PARABRISA_IMAGE) {
       throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar LIMPADOR_PARABRISA_IMAGE`)
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
+    }
+  }
+
+  // --- Validação da Linha Mangueira Chuveiro (30ª linha) ---
+  // 1. Casos positivos: SKU 2234 confirmado no banco + variações (caixa baixa, com acento, com hífen, em descrição)
+  const chuveiroPositiveCases = [
+    {
+      sku: '2234',
+      name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA',
+      brand: '',
+      unit: 'MT',
+    },
+    {
+      sku: '2234-lower',
+      name: 'mangueira chuveiro 5/16" x 1,3mm pvc branca',
+      brand: '',
+      unit: 'MT',
+    },
+    {
+      sku: '2234-accent',
+      name: 'MANGUEIRA CHÚVEIRO 5/16" PVC BRANCA',
+      brand: '',
+    },
+    {
+      sku: '2234-hifen',
+      name: 'MANGUEIRA-CHUVEIRO 5/16" PVC',
+      brand: '',
+    },
+    {
+      sku: '2234-desc',
+      name: 'MANGUEIRA PVC BRANCA 5/16"',
+      description: 'Mangueira flexível para chuveiro elétrico',
+      brand: '',
+    },
+    {
+      sku: '2234-brand',
+      name: 'MANGUEIRA CHUVEIRO 5/16"',
+      brand: 'IBIRÁ',
+    },
+  ]
+
+  for (const item of chuveiroPositiveCases) {
+    if (!isChuveiro(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isChuveiro`)
+    }
+    // Não pode casar com outras linhas irmãs ou de cor branca
+    if (isSaidaCorrugadaBranca(item)) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaCorrugadaBranca`,
+      )
+    }
+    if (isSaidaDrenagem(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaDrenagem`)
+    }
+    if (isMangueiraEntrada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isMangueiraEntrada`)
+    }
+    if (isSaidaTanquinho(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSaidaTanquinho`)
+    }
+    if (isCristal(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristal`)
+    }
+    if (isSiliconeTranslucida(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSiliconeTranslucida`)
+    }
+    if (isLimpadorParabrisa(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLimpadorParabrisa`)
+    }
+    if (getProductImage(item) !== CHUVEIRO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou CHUVEIRO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== CHUVEIRO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [CHUVEIRO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada no banco sobre CHUVEIRO_IMAGE
+  const customImgChuveiro = {
+    sku: '2234',
+    name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA',
+    image: 'https://exemplo.com/foto-especifica-chuveiro.jpg',
+  }
+  if (getProductImage(customImgChuveiro) !== 'https://exemplo.com/foto-especifica-chuveiro.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre CHUVEIRO_IMAGE')
+  }
+
+  // 2. Casos negativos obrigatórios para Mangueira Chuveiro:
+  // - Produtos sem "chuveiro" NÃO devem casar
+  // - Bateria completa de não-regressão de TODAS as linhas já fotografadas
+  // - Explicitamente testar que Saída Corrugada Branca, Saída Drenagem, Entrada e linhas brancas NÃO casam com a regra do chuveiro
+  const chuveiroNegativeCases = [
+    // Produtos genéricos ou outros sem a palavra chuveiro
+    {
+      sku: '9930',
+      name: 'MANGUEIRA JARDIM TRANÇADA REFORÇADA 1/2"',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9931',
+      name: 'MANGUEIRA PVC BRANCA LISA 1/2"',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9932',
+      name: 'BRAÇO PARA CHUVEIRO 30CM ALUMINIO BRANCO',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Teste explícito das linhas brancas, saída e entrada:
+    // Saída Corrugada Branca
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    {
+      sku: '8895',
+      name: 'MANGUEIRA SAIDA CORRUGADA 2,0M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    // Saída Drenagem
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // Mangueira Entrada
+    {
+      sku: '4711',
+      name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS',
+      brand: '',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // Saída Tanquinho
+    {
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    // Amostras de TODAS as outras linhas fotografadas anteriores (não-regressão completa)
+    // 1. Balflex Forza Uno Tropic
+    {
+      sku: '9910',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    // 2. Balflex Forza Uno
+    {
+      sku: '9911',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    // 3. Balflex Forza Due Tropic
+    {
+      sku: '9912',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    // 4. Balflex Forza Due
+    {
+      sku: '9913',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    // 5. Balflex Texmaster
+    {
+      sku: '9914',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    // 6. Balflex R6 Multipurpose
+    {
+      sku: '9915',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    // 7. Balflex Fuel Pump
+    {
+      sku: '9916',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+    // 8. Balflex Supersteam
+    {
+      sku: '9917',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 210C 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    // 9. Korax Kobra 1
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    // 10. Korax Kobra 2
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    // 11. Blindada Gás FG
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // 12. Cristal Trançada
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    // 13. Cristal Liso
+    {
+      sku: '6980',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    // 14. Sucção Laranja
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    // 15. Sucção Cinza / Vácuo Ar Cinza
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    // 16. Sucção Azul
+    {
+      sku: '2747-rep',
+      name: 'MANGUEIRA SUCÇAO 2.1/2" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    // 17. Vácuo Ar Preta
+    {
+      sku: '6293',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    // 18. Alumínio Proteção
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    // 19. R14 Teflon
+    {
+      sku: '4592-rep',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    // 20. Lisa Irrigação
+    {
+      sku: '861',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+    // 21. Gás Lonada Preta
+    {
+      sku: '1960',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    // 22. Gás / Flexível PVC
+    {
+      sku: '1946',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+      expectedImg: GAS_PVC_IMAGE,
+    },
+    // 23. Lava Auto
+    {
+      sku: '529',
+      name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI',
+      brand: 'KORAX',
+      expectedImg: LAVA_AUTO_IMAGE,
+    },
+    // 24. Silicone Translúcida
+    {
+      sku: '1412',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 6 X 4 MM',
+      brand: '',
+      expectedImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    // 25. Esguicho Limpador Parabrisa
+    {
+      sku: '8096',
+      name: 'MANGUEIRA ESGUICHO LIMPADOR PARABRISA - SILICONADA',
+      brand: '',
+      expectedImg: LIMPADOR_PARABRISA_IMAGE,
+    },
+  ]
+
+  for (const item of chuveiroNegativeCases) {
+    if (isChuveiro(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isChuveiro`)
+    }
+    if (getProductImage(item) === CHUVEIRO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar CHUVEIRO_IMAGE`)
     }
     if ('expectedImg' in item && item.expectedImg) {
       if (getProductImage(item) !== item.expectedImg) {

@@ -26,6 +26,7 @@ import gasPvcImg from '@/assets/gaspvc-b0e56.png'
 import lavaAutoImg from '@/assets/lavaauto-f265e.png'
 import siliconeTranslucidaImg from '@/assets/siliconetranslucida-fe693.png'
 import limpadorParabrisaImg from '@/assets/limpador-parabrisa'
+import chuveiroImg from '@/assets/chuveiro'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -57,6 +58,7 @@ export const GAS_PVC_IMAGE = gasPvcImg
 export const LAVA_AUTO_IMAGE = lavaAutoImg
 export const SILICONE_TRANSLUCIDA_IMAGE = siliconeTranslucidaImg
 export const LIMPADOR_PARABRISA_IMAGE = limpadorParabrisaImg
+export const CHUVEIRO_IMAGE = chuveiroImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -772,6 +774,19 @@ export function isLimpadorParabrisa(product: ProductImageSubject | null | undefi
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA CHUVEIRO".
+ * Regra: exige a palavra inteira "chuveiro" no texto consolidado (name + description + variações),
+ * tolerante a acentuação (ch[uú]veiro), maiúsculas/minúsculas e hífen — usando limites de palavra \b.
+ * SEM restrição de marca.
+ */
+export function isChuveiro(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  return /\bch[uú]veiro\b/i.test(text)
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -803,7 +818,8 @@ export function isLimpadorParabrisa(product: ProductImageSubject | null | undefi
  * 27. Se for da linha Lava Auto, retorna a imagem oficial anexada (LAVA_AUTO_IMAGE)
  * 28. Se for da linha Silicone Translúcida, retorna a imagem oficial anexada (SILICONE_TRANSLUCIDA_IMAGE)
  * 29. Se for da linha Limpador Parabrisa, retorna a imagem oficial anexada (LIMPADOR_PARABRISA_IMAGE)
- * 30. Fallback: placeholder genérico de produto
+ * 30. Se for da linha Chuveiro, retorna a imagem oficial anexada (CHUVEIRO_IMAGE)
+ * 31. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -939,6 +955,10 @@ export function getProductImage(
     return LIMPADOR_PARABRISA_IMAGE
   }
 
+  if (isChuveiro(product)) {
+    return CHUVEIRO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -979,6 +999,7 @@ export function getProductImage(
  * - Se for Lava Auto, retorna [LAVA_AUTO_IMAGE].
  * - Se for Silicone Translúcida, retorna [SILICONE_TRANSLUCIDA_IMAGE].
  * - Se for Limpador Parabrisa, retorna [LIMPADOR_PARABRISA_IMAGE].
+ * - Se for Chuveiro, retorna [CHUVEIRO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1113,6 +1134,10 @@ export function getProductImages(
 
   if (isLimpadorParabrisa(product)) {
     return [LIMPADOR_PARABRISA_IMAGE]
+  }
+
+  if (isChuveiro(product)) {
+    return [CHUVEIRO_IMAGE]
   }
 
   return [fallbackUrl]
