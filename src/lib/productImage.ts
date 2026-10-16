@@ -25,6 +25,7 @@ import gasLonadaPretaImg from '@/assets/gaslonadapreta-5dc68.png'
 import gasPvcImg from '@/assets/gaspvc-b0e56.png'
 import lavaAutoImg from '@/assets/lavaauto-f265e.png'
 import siliconeTranslucidaImg from '@/assets/siliconetranslucida-fe693.png'
+import limpadorParabrisaImg from '@/assets/limpador-parabrisa'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -55,6 +56,7 @@ export const GAS_LONADA_PRETA_IMAGE = gasLonadaPretaImg
 export const GAS_PVC_IMAGE = gasPvcImg
 export const LAVA_AUTO_IMAGE = lavaAutoImg
 export const SILICONE_TRANSLUCIDA_IMAGE = siliconeTranslucidaImg
+export const LIMPADOR_PARABRISA_IMAGE = limpadorParabrisaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -752,6 +754,24 @@ export function isSiliconeTranslucida(product: ProductImageSubject | null | unde
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA ESGUICHO LIMPADOR PARABRISA".
+ * Regra: exige SIMULTANEAMENTE as palavras inteiras "LIMPADOR" E "PARABRISA" / "PARA-BRISA" / "PÁRA-BRISA"
+ * (case-insensitive e tolerante a acentuação e hífen) no texto consolidado do produto (nome + descrições).
+ * Palavras inteiras (\blimpador\b e \bp[aá]ra[- ]?brisa\b) garantem que apenas a linha pretendida seja casada,
+ * sem casar com "limpador" isolado ou "parabrisa" isolado.
+ * SEM restrição de marca.
+ */
+export function isLimpadorParabrisa(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasLimpador = /\blimpador\b/i.test(text)
+  const hasParabrisa = /\bp[aá]ra[- ]?brisa\b/i.test(text)
+
+  return hasLimpador && hasParabrisa
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -782,7 +802,8 @@ export function isSiliconeTranslucida(product: ProductImageSubject | null | unde
  * 26. Se for da linha Gás / Flexível PVC, retorna a imagem oficial anexada (GAS_PVC_IMAGE)
  * 27. Se for da linha Lava Auto, retorna a imagem oficial anexada (LAVA_AUTO_IMAGE)
  * 28. Se for da linha Silicone Translúcida, retorna a imagem oficial anexada (SILICONE_TRANSLUCIDA_IMAGE)
- * 29. Fallback: placeholder genérico de produto
+ * 29. Se for da linha Limpador Parabrisa, retorna a imagem oficial anexada (LIMPADOR_PARABRISA_IMAGE)
+ * 30. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -914,6 +935,10 @@ export function getProductImage(
     return SILICONE_TRANSLUCIDA_IMAGE
   }
 
+  if (isLimpadorParabrisa(product)) {
+    return LIMPADOR_PARABRISA_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -953,6 +978,7 @@ export function getProductImage(
  * - Se for Gás / Flexível PVC, retorna [GAS_PVC_IMAGE].
  * - Se for Lava Auto, retorna [LAVA_AUTO_IMAGE].
  * - Se for Silicone Translúcida, retorna [SILICONE_TRANSLUCIDA_IMAGE].
+ * - Se for Limpador Parabrisa, retorna [LIMPADOR_PARABRISA_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1083,6 +1109,10 @@ export function getProductImages(
 
   if (isSiliconeTranslucida(product)) {
     return [SILICONE_TRANSLUCIDA_IMAGE]
+  }
+
+  if (isLimpadorParabrisa(product)) {
+    return [LIMPADOR_PARABRISA_IMAGE]
   }
 
   return [fallbackUrl]

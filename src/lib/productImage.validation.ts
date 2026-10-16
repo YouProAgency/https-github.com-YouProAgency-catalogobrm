@@ -49,6 +49,8 @@ import {
   GAS_PVC_IMAGE,
   LAVA_AUTO_IMAGE,
   SILICONE_TRANSLUCIDA_IMAGE,
+  LIMPADOR_PARABRISA_IMAGE,
+  isLimpadorParabrisa,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -3426,6 +3428,340 @@ export function runProductImageSelfCheck(): boolean {
       throw new Error(
         `Item ${item.sku} (${item.name}) NÃO deve retornar SILICONE_TRANSLUCIDA_IMAGE`,
       )
+    }
+    if ('expectedImg' in item && item.expectedImg) {
+      if (getProductImage(item) !== item.expectedImg) {
+        throw new Error(
+          `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
+        )
+      }
+    }
+  }
+
+  // --- Validação da Linha Limpador Parabrisa (29ª linha) ---
+  // 1. Casos positivos: SKU 8096 confirmado no banco + variações (caixa baixa, sem acento, ordem invertida, em descrição)
+  const limpadorParabrisaPositiveCases = [
+    {
+      sku: '8096',
+      name: 'MANGUEIRA ESGUICHO LIMPADOR PARABRISA - SILICONADA',
+      brand: '',
+      unit: 'MT',
+    },
+    {
+      sku: '8096-lower',
+      name: 'mangueira esguicho limpador parabrisa - siliconada',
+      brand: '',
+      unit: 'MT',
+    },
+    {
+      sku: '8096-accent',
+      name: 'MANGUEIRA LIMPADOR PÁRA-BRISA ESGUICHO',
+      brand: '',
+    },
+    {
+      sku: '8096-hifen',
+      name: 'MANGUEIRA ESGUICHO LIMPADOR PARA-BRISA',
+      brand: '',
+    },
+    {
+      sku: '8096-invert',
+      name: 'MANGUEIRA PARABRISA ESGUICHO LIMPADOR',
+      brand: '',
+    },
+    {
+      sku: '8096-desc',
+      name: 'MANGUEIRA ESGUICHO AUTOMOTIVA',
+      description: 'Mangueira de esguicho para limpador de parabrisa',
+      brand: '',
+    },
+  ]
+
+  for (const item of limpadorParabrisaPositiveCases) {
+    if (!isLimpadorParabrisa(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isLimpadorParabrisa`)
+    }
+    // Não pode casar com outras linhas de imagem (ex: Silicone Translúcida mesmo tendo "siliconada")
+    if (isSiliconeTranslucida(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isSiliconeTranslucida`)
+    }
+    if (isCristal(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristal`)
+    }
+    if (isCristalTrancada(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isCristalTrancada`)
+    }
+    if (isLavaAuto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLavaAuto`)
+    }
+    if (isGasPvc(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isGasPvc`)
+    }
+    if (getProductImage(item) !== LIMPADOR_PARABRISA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou LIMPADOR_PARABRISA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== LIMPADOR_PARABRISA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [LIMPADOR_PARABRISA_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada no banco sobre LIMPADOR_PARABRISA_IMAGE
+  const customImgLimpador = {
+    sku: '8096',
+    name: 'MANGUEIRA ESGUICHO LIMPADOR PARABRISA - SILICONADA',
+    image: 'https://exemplo.com/foto-especifica-limpador.jpg',
+  }
+  if (getProductImage(customImgLimpador) !== 'https://exemplo.com/foto-especifica-limpador.jpg') {
+    throw new Error('Imagem própria do produto deve ter precedência sobre LIMPADOR_PARABRISA_IMAGE')
+  }
+
+  // 2. Casos negativos obrigatórios para Limpador Parabrisa:
+  // - "limpador" sem "parabrisa" (e vice-versa) NÃO devem casar
+  // - Bateria completa de não-regressão de todas as linhas já fotografadas
+  const limpadorNegativeCases = [
+    // "Limpador" isolado sem "parabrisa"
+    {
+      sku: '9920',
+      name: 'LIMPADOR DE CONTATO ELETRICO SPRAY 300ML',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9921',
+      name: 'RODO LIMPADOR DE VIDROS COM ESPONJA',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9922',
+      name: 'MOTOR LIMPADOR TRASEIRO 12V UNIVERSAL',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // "Parabrisa" isolado sem "limpador"
+    {
+      sku: '9923',
+      name: 'ESGUICHO BRUCUTU DO PARABRISA DIANTEIRO',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9924',
+      name: 'RESERVATORIO DE AGUA DO PARABRISA UNIVERSAL',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '9925',
+      name: 'PALHETA DO PARA-BRISA SILICONADA 24 POLEGADAS',
+      brand: '',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Amostras de TODAS as linhas fotografadas anteriores (não-regressão completa)
+    // 1. Balflex Forza Uno Tropic
+    {
+      sku: '9910',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    // 2. Balflex Forza Uno
+    {
+      sku: '9911',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    // 3. Balflex Forza Due Tropic
+    {
+      sku: '9912',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    // 4. Balflex Forza Due
+    {
+      sku: '9913',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    // 5. Balflex Texmaster
+    {
+      sku: '9914',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    // 6. Balflex R6 Multipurpose
+    {
+      sku: '9915',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    // 7. Balflex Fuel Pump
+    {
+      sku: '9916',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+    // 8. Balflex Supersteam
+    {
+      sku: '9917',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 210C 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    // 9. Korax Kobra 1
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    // 10. Korax Kobra 2
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    // 11. Blindada Gás FG
+    {
+      sku: '6757',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // 12. Cristal Trançada
+    {
+      sku: '3687',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    // 13. Cristal Liso
+    {
+      sku: '6980',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    // 14. Saída Drenagem
+    {
+      sku: '8885',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // 15. Saída Corrugada Branca
+    {
+      sku: '8894',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    // 16. Saída Tanquinho
+    {
+      sku: '4529',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    // 17. Sucção Laranja
+    {
+      sku: '2745',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    // 18. Sucção Cinza / Vácuo Ar Cinza
+    {
+      sku: '2210',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    // 19. Sucção Azul
+    {
+      sku: '2747-rep',
+      name: 'MANGUEIRA SUCÇAO 2.1/2" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    // 20. Vácuo Ar Preta
+    {
+      sku: '6293',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    // 21. Alumínio Proteção
+    {
+      sku: '6354',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    // 22. R14 Teflon
+    {
+      sku: '4592-rep',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    // 23. Lisa Irrigação
+    {
+      sku: '861',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+    // 24. Gás Lonada Preta
+    {
+      sku: '1960',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    // 25. Gás / Flexível PVC
+    {
+      sku: '1946',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+      expectedImg: GAS_PVC_IMAGE,
+    },
+    // 26. Lava Auto
+    {
+      sku: '529',
+      name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI',
+      brand: 'KORAX',
+      expectedImg: LAVA_AUTO_IMAGE,
+    },
+    // 27. Mangueira Entrada (reutiliza SAIDA_DRENAGEM_IMAGE)
+    {
+      sku: '4711',
+      name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS',
+      brand: '',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // 28. Silicone Translúcida
+    {
+      sku: '1412',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 6 X 4 MM',
+      brand: '',
+      expectedImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+  ]
+
+  for (const item of limpadorNegativeCases) {
+    if (isLimpadorParabrisa(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isLimpadorParabrisa`)
+    }
+    if (getProductImage(item) === LIMPADOR_PARABRISA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deve retornar LIMPADOR_PARABRISA_IMAGE`)
     }
     if ('expectedImg' in item && item.expectedImg) {
       if (getProductImage(item) !== item.expectedImg) {
