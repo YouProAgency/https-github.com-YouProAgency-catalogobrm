@@ -39,6 +39,8 @@ interface CatalogFiltersProps {
   selectedCategory: string
   onCategoryChange: (value: string) => void
   availableCategories: CategoryOption[]
+  selectedSubcategory?: string | null
+  onSubcategoryChange?: (value: string) => void
   totalResults: number
   totalCatalog: number
   onClearFilters: () => void
@@ -57,6 +59,8 @@ export function CatalogFilters({
   selectedCategory,
   onCategoryChange,
   availableCategories,
+  selectedSubcategory,
+  onSubcategoryChange,
   totalResults,
   totalCatalog,
   onClearFilters,
@@ -328,10 +332,34 @@ export function CatalogFilters({
                 variant="secondary"
                 className="bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs gap-1.5 pl-2.5 pr-1.5 py-1"
               >
-                <span>Categoria: {selectedCategory}</span>
+                <span>
+                  Categoria: {selectedCategory}
+                  {selectedSubcategory ? ` > ${selectedSubcategory}` : ''}
+                </span>
                 <button
                   type="button"
-                  onClick={() => onCategoryChange('all')}
+                  onClick={() => {
+                    onCategoryChange('all')
+                    if (onSubcategoryChange) onSubcategoryChange('')
+                  }}
+                  className="hover:text-destructive p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+
+            {selectedSubcategory && (!selectedCategory || selectedCategory === 'all') && (
+              <Badge
+                variant="secondary"
+                className="bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs gap-1.5 pl-2.5 pr-1.5 py-1"
+              >
+                <span>Subcategoria: {selectedSubcategory}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSubcategoryChange) onSubcategoryChange('')
+                  }}
                   className="hover:text-destructive p-0.5"
                 >
                   <X className="h-3 w-3" />

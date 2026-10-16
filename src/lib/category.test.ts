@@ -4,6 +4,8 @@ import {
   isHydraulicProduct,
   getProductDisplayCategory,
   matchesCategoryFilter,
+  matchesSubcategoryFilter,
+  matchesHierarchyFilter,
   normalizeCategoryKey,
 } from './category'
 
@@ -162,6 +164,98 @@ export function runCategoryNormalizationSelfCheck() {
     throw new Error('Falha normalizeCategoryKey Hidráulicas')
   if (normalizeCategoryKey('MANGUEIRA HIDRAULICA') !== 'mangueira hidraulica') {
     throw new Error('Falha normalizeCategoryKey MANGUEIRA HIDRAULICA')
+  }
+
+  // 9. Subcategoria "Hidráulicas" pelo caminho de hierarquia pai -> filho ("Mangueiras Industriais" > "Hidráulicas")
+  // Deve retornar exatamente o conjunto hidráulico (categoria crua MANGUEIRA HIDRAULICA OU padrão série R)
+  const hierarchyHydraulicResults = sampleProducts.filter((p) =>
+    matchesHierarchyFilter(p, 'Mangueiras Industriais', 'Hidráulicas'),
+  )
+  if (hierarchyHydraulicResults.length !== 3) {
+    throw new Error(
+      `matchesHierarchyFilter("Mangueiras Industriais", "Hidráulicas") esperava 3 itens, retornou ${hierarchyHydraulicResults.length}`,
+    )
+  }
+  const hierarchyNames = hierarchyHydraulicResults.map((p) => p.name)
+  if (
+    !hierarchyNames.includes('MANGUEIRA R1 1/2"') ||
+    !hierarchyNames.includes('MANGUEIRA R2 3/4"') ||
+    !hierarchyNames.includes('MANGUEIRA 4SP 1/2"')
+  ) {
+    throw new Error(
+      `matchesHierarchyFilter não retornou todos os produtos hidráulicos esperados: ${JSON.stringify(hierarchyNames)}`,
+    )
+  }
+
+  // 10. Subcategoria "Ar e Água" e "Sucção e Descarga" funcionando no caminho do menu lateral
+  const industrialCatalog = [
+    { name: 'MANGUEIRA AR E AGUA 300 PSI 1/2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA AR E ÁGUA 200 LBS 3/4"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇÃO E DESCARGA PESADA 2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCCAO LARANJA 3"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR SVE PRATA 1.1/2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA R2 1/2"', category: 'MANGUEIRA HIDRAULICA' },
+    { name: 'MANGUEIRA CRISTAL LISA 1/2"', category: 'MANGUEIRAS' },
+  ]
+
+  const airWaterResults = industrialCatalog.filter((p) =>
+    matchesHierarchyFilter(p, 'Mangueiras Industriais', 'Ar e Água'),
+  )
+  if (airWaterResults.length !== 2) {
+    throw new Error(
+      `matchesHierarchyFilter("Mangueiras Industriais", "Ar e Água") esperava 2 itens, retornou ${airWaterResults.length}`,
+    )
+  }
+
+  const suctionResults = industrialCatalog.filter((p) =>
+    matchesHierarchyFilter(p, 'Mangueiras Industriais', 'Sucção e Descarga'),
+  )
+  if (suctionResults.length !== 3) {
+    throw new Error(
+      `matchesHierarchyFilter("Mangueiras Industriais", "Sucção e Descarga") esperava 3 itens, retornou ${suctionResults.length}`,
+    )
+  }
+
+  // 11. matchesSubcategoryFilter isolado
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA R1 1/2"', category: 'MANGUEIRA HIDRAULICA' },
+      'Hidráulicas',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter falhou para R1 com subcategoria Hidráulicas')
+  }
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA 4SP 1/2"', category: 'MANGUEIRA HIDRAULICA' },
+      'Hidráulicas',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter falhou para 4SP com subcategoria Hidráulicas')
+  }
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA AR E AGUA 300 PSI', category: 'MANGUEIRAS' },
+      'Ar e Água',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter falhou para Ar e Água')
+  }
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA SUCÇÃO LARANJA 2"', category: 'MANGUEIRAS' },
+      'Sucção e Descarga',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter falhou para Sucção e Descarga')
+  }
+  if (
+    matchesSubcategoryFilter(
+      { name: 'MANGUEIRA CRISTAL LISA 1/2"', category: 'MANGUEIRAS' },
+      'Hidráulicas',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter aceitou Cristal indevidamente em Hidráulicas')
   }
 
   return true

@@ -106,6 +106,98 @@ export function matchesCategoryFilter(
     return isHydraulicProduct(item)
   }
 
+  // Categoria pai "Mangueiras Industriais" / "Mangueira Industrial" / "Mangueiras"
+  // Agrupa todas as mangueiras industriais e hidráulicas do catálogo
+  if (
+    normalizedFilter === 'mangueiras industriais' ||
+    normalizedFilter === 'mangueira industrial' ||
+    normalizedFilter === 'mangueiras'
+  ) {
+    return true
+  }
+
   const itemCategoryKey = normalizeCategoryKey(item.category)
   return itemCategoryKey === normalizedFilter
+}
+
+/**
+ * Checa se um produto atende ao filtro de subcategoria (usado especialmente no menu lateral).
+ * Quando a subcategoria é "Hidráulicas", retorna todos os produtos hidráulicos
+ * (categoria crua "MANGUEIRA HIDRAULICA" OU nome com série R / modelo hidráulico).
+ * Quando a subcategoria é "Ar e Água", retorna produtos com "AR E AGUA" no nome.
+ * Quando a subcategoria é "Sucção e Descarga", retorna produtos com "SUCÇÃO" ou "VÁCUO AR" no nome.
+ */
+export function matchesSubcategoryFilter(
+  item: { name?: string | null; category?: string | null; subcategory?: string | null },
+  subcategory?: string | null,
+): boolean {
+  if (!subcategory || subcategory === 'all') {
+    return true
+  }
+
+  const normSub = normalizeCategoryKey(subcategory)
+  if (normSub === 'hidraulicas' || normSub === 'hidraulica') {
+    return isHydraulicProduct(item)
+  }
+
+  if (normSub === 'ar e agua') {
+    if (!item?.name) return false
+    const nameNorm = normalizeCategoryKey(item.name)
+    return /\bar\s+e\s+agua\b/.test(nameNorm)
+  }
+
+  if (normSub === 'succao e descarga' || normSub === 'succao' || normSub === 'succao / descarga') {
+    if (!item?.name) return false
+    const nameNorm = normalizeCategoryKey(item.name)
+    const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/.test(nameNorm)
+    const hasVacuoAr = /\bv[aá]cuo\s+ar\b/.test(nameNorm)
+    return hasSuccao || hasVacuoAr
+  }
+
+  // Fallback para campo subcategory preenchido ou busca por nome
+  if (item.subcategory && normalizeCategoryKey(item.subcategory) === normSub) {
+    return true
+  }
+
+  const itemNameNorm = normalizeCategoryKey(item.name)
+  return itemNameNorm.includes(normSub)
+}
+
+/**
+ * Combina o filtro hierárquico de categoria (pai) e subcategoria (filho) do menu lateral ou URL.
+ * Se a subcategoria for "Hidráulicas", lista exatamente a união canônica de produtos hidráulicos.
+ * Se a categoria-pai for "Mangueiras Industriais", não afunila excluindo os produtos hidráulicos.
+ */
+export function matchesHierarchyFilter(
+  item: { name?: string | null; category?: string | null; subcategory?: string | null },
+  categoryParam?: string | null,
+  subcategoryParam?: string | null,
+): boolean {
+  if (subcategoryParam) {
+    const normSub = normalizeCategoryKey(subcategoryParam)
+    // Se a subcategoria for Hidráulicas, ela comanda o filtro hidráulico canônico integralmente
+    if (normSub === 'hidraulicas' || normSub === 'hidraulica') {
+      return isHydraulicProduct(item)
+    }
+    // Para as demais subcategorias, verifica a subcategoria
+    if (!matchesSubcategoryFilter(item, subcategoryParam)) {
+      return false
+    }
+    // Se a categoria pai não for um contêiner abrangente como "Mangueiras Industriais" ou "Mangueiras",
+    // aplica a checagem da categoria pai também
+    const normCat = normalizeCategoryKey(categoryParam)
+    if (
+      normCat &&
+      normCat !== 'all' &&
+      normCat !== 'mangueiras industriais' &&
+      normCat !== 'mangueira industrial' &&
+      normCat !== 'mangueiras'
+    ) {
+      return matchesCategoryFilter(item, categoryParam)
+    }
+    return true
+  }
+
+  // Se não houver subcategoria selecionada
+  return matchesCategoryFilter(item, categoryParam)
 }

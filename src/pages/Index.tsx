@@ -35,6 +35,7 @@ import { resetDefaultSeo } from '@/lib/seo'
 import {
   getProductDisplayCategory,
   matchesCategoryFilter,
+  matchesHierarchyFilter,
   CANONICAL_HYDRAULIC_CATEGORY,
 } from '@/lib/category'
 
@@ -135,6 +136,10 @@ export default function Index() {
     updateFilterParam('category', val)
   }
 
+  const handleSubcategoryChange = (val: string) => {
+    updateFilterParam('sub', val)
+  }
+
   const handleClearFilters = () => {
     setSearchInput('')
     const next = new URLSearchParams()
@@ -186,14 +191,9 @@ export default function Index() {
       )
     }
 
-    // 4. Category Filter (com suporte a união da série R + MANGUEIRA HIDRAULICA para "Hidráulicas")
-    if (categoryParam && categoryParam !== 'all') {
-      result = result.filter((p) => matchesCategoryFilter(p, categoryParam))
-    }
-
-    // 5. Subcategory
-    if (subcategory) {
-      result = result.filter((p) => p.subcategory === subcategory)
+    // 4 & 5. Category & Subcategory Filter (com suporte a hierarquia pai->filho do menu lateral)
+    if ((categoryParam && categoryParam !== 'all') || subcategory) {
+      result = result.filter((p) => matchesHierarchyFilter(p, categoryParam, subcategory))
     }
 
     // 6. Featured
@@ -330,6 +330,8 @@ export default function Index() {
           selectedCategory={categoryParam}
           onCategoryChange={handleCategoryChange}
           availableCategories={availableCategories}
+          selectedSubcategory={subcategory}
+          onSubcategoryChange={handleSubcategoryChange}
           totalResults={filteredProducts.length}
           totalCatalog={cleanProducts.length}
           onClearFilters={handleClearFilters}
@@ -346,11 +348,15 @@ export default function Index() {
                   ? `Mangueiras com bitola ${bitolaParam}`
                   : brandParam && brandParam !== 'all'
                     ? `Mangueiras ${brandParam}`
-                    : categoryParam && categoryParam !== 'all'
-                      ? `${categoryParam} ${subcategory ? `> ${subcategory}` : ''}`
-                      : featuredOnly
-                        ? 'Produtos em Destaque'
-                        : 'Catálogo de Produtos'}
+                    : subcategory
+                      ? categoryParam && categoryParam !== 'all'
+                        ? `${categoryParam} > ${subcategory}`
+                        : subcategory
+                      : categoryParam && categoryParam !== 'all'
+                        ? categoryParam
+                        : featuredOnly
+                          ? 'Produtos em Destaque'
+                          : 'Catálogo de Produtos'}
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
               {filteredProducts.length === 0
@@ -416,7 +422,11 @@ export default function Index() {
               {queryParam ? `busca: "${queryParam}", ` : ''}
               {bitolaParam && bitolaParam !== 'all' ? `bitola: ${bitolaParam}, ` : ''}
               {brandParam && brandParam !== 'all' ? `marca: ${brandParam}, ` : ''}
-              {categoryParam && categoryParam !== 'all' ? `categoria: ${categoryParam}` : ''}
+              {categoryParam && categoryParam !== 'all'
+                ? `categoria: ${categoryParam}${subcategory ? ` > ${subcategory}` : ''}`
+                : subcategory
+                  ? `subcategoria: ${subcategory}`
+                  : ''}
               ).
             </p>
             <Button
