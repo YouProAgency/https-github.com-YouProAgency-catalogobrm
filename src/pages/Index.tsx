@@ -32,6 +32,11 @@ import {
 import { extractBitola, getAvailableBitolasWithCount } from '@/lib/bitola'
 import { isExcludedProduct } from '@/services/products'
 import { resetDefaultSeo } from '@/lib/seo'
+import {
+  getProductDisplayCategory,
+  matchesCategoryFilter,
+  CANONICAL_HYDRAULIC_CATEGORY,
+} from '@/lib/category'
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -83,18 +88,23 @@ export default function Index() {
       .sort((a, b) => a.brand.localeCompare(b.brand))
   }, [cleanProducts])
 
-  // Extract available categories with count
+  // Extract available categories with count (normalizando "MANGUEIRA HIDRAULICA" e série R para "Hidráulicas")
   const availableCategories: CategoryOption[] = useMemo(() => {
     const counts = new Map<string, number>()
     cleanProducts.forEach((p) => {
-      const c = (p.category || '').trim()
+      const c = getProductDisplayCategory(p)
       if (c) {
         counts.set(c, (counts.get(c) || 0) + 1)
       }
     })
     return Array.from(counts.entries())
       .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => a.category.localeCompare(b.category))
+      .sort((a, b) => {
+        // Deixa "Hidráulicas" em primeiro lugar de destaque se presente, depois ordem alfabética
+        if (a.category === CANONICAL_HYDRAULIC_CATEGORY) return -1
+        if (b.category === CANONICAL_HYDRAULIC_CATEGORY) return 1
+        return a.category.localeCompare(b.category)
+      })
   }, [cleanProducts])
 
   // Update search param helper
@@ -176,11 +186,9 @@ export default function Index() {
       )
     }
 
-    // 4. Category Filter
+    // 4. Category Filter (com suporte a união da série R + MANGUEIRA HIDRAULICA para "Hidráulicas")
     if (categoryParam && categoryParam !== 'all') {
-      result = result.filter(
-        (p) => (p.category || '').trim().toLowerCase() === categoryParam.trim().toLowerCase(),
-      )
+      result = result.filter((p) => matchesCategoryFilter(p, categoryParam))
     }
 
     // 5. Subcategory

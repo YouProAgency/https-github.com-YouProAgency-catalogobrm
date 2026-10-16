@@ -20,6 +20,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage, getProductImages } from '@/lib/productImage'
+import { getProductDisplayCategory } from '@/lib/category'
 import { applyProductSeo, applyNotFoundSeo, resetDefaultSeo } from '@/lib/seo'
 
 export default function ProductDetails() {
@@ -98,8 +99,9 @@ export default function ProductDetails() {
     )
   }
 
+  const displayCategory = getProductDisplayCategory(product)
   const relatedProducts = allProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => getProductDisplayCategory(p) === displayCategory && p.id !== product.id)
     .slice(0, 4)
 
   const handleShare = () => {
@@ -158,7 +160,7 @@ export default function ProductDetails() {
         <div className="flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-1 rounded-sm">
-              {product.category}
+              {displayCategory}
             </span>
             <Button
               variant="outline"

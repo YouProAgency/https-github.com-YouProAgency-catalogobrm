@@ -8,6 +8,7 @@ import { Product } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { formatCurrencyBRL, isValidDisplayUnit } from '@/lib/utils'
 import { getProductImage } from '@/lib/productImage'
+import { getProductDisplayCategory } from '@/lib/category'
 
 interface ProductCardProps {
   product: Product
@@ -18,6 +19,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const displayImage = getProductImage(product)
   const hasValidUnit = isValidDisplayUnit(product.unit, product.name)
   const brandName = (product.brand || '').trim()
+  const displayCategory = getProductDisplayCategory(product)
 
   return (
     <Card className="overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300 border-border bg-white rounded-sm hover:-translate-y-1">
@@ -59,9 +61,9 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
         </Link>
         <div className="flex items-center gap-2 mb-2">
-          {product.category && (
+          {displayCategory && (
             <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-sm">
-              {product.category}
+              {displayCategory}
             </span>
           )}
           {hasValidUnit && (
