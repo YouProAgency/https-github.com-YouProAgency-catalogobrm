@@ -24,6 +24,7 @@ import vacuoArPretaImg from '@/assets/vacuoarpreta-830f3.png'
 import gasLonadaPretaImg from '@/assets/gaslonadapreta-5dc68.png'
 import gasPvcImg from '@/assets/gaspvc-b0e56.png'
 import lavaAutoImg from '@/assets/lavaauto-f265e.png'
+import siliconeTranslucidaImg from '@/assets/siliconetranslucida-fe693.png'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -53,6 +54,7 @@ export const LISA_IRRIGACAO_IMAGE = lisaIrrigacaoImg
 export const GAS_LONADA_PRETA_IMAGE = gasLonadaPretaImg
 export const GAS_PVC_IMAGE = gasPvcImg
 export const LAVA_AUTO_IMAGE = lavaAutoImg
+export const SILICONE_TRANSLUCIDA_IMAGE = siliconeTranslucidaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -732,6 +734,24 @@ export function isLavaAuto(product: ProductImageSubject | null | undefined): boo
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA DE SILICONE TRANSLUCIDA".
+ * Regra: exige SIMULTANEAMENTE as palavras inteiras "SILICONE" E "TRANSLÚCIDA" / "TRANSLUCIDA"
+ * (case-insensitive e tolerante a acentuação) no texto consolidado do produto (nome + descrições).
+ * SEM restrição de marca (os 5 produtos do catálogo não possuem marca cadastrada).
+ * Palavras inteiras (\bsilicone\b e \btransl[uú]cid[ao]\b) garantem que apenas mangueiras de silicone
+ * translúcida sejam capturadas, sem casar com silicone isolado ou translúcida isolado.
+ */
+export function isSiliconeTranslucida(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+  const hasSilicone = /\bsilicone\b/i.test(text)
+  const hasTranslucida = /\btransl[uú]cid[ao]\b/i.test(text)
+
+  return hasSilicone && hasTranslucida
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -761,7 +781,8 @@ export function isLavaAuto(product: ProductImageSubject | null | undefined): boo
  * 25. Se for da linha Gás Lonada Preta, retorna a imagem oficial anexada (GAS_LONADA_PRETA_IMAGE)
  * 26. Se for da linha Gás / Flexível PVC, retorna a imagem oficial anexada (GAS_PVC_IMAGE)
  * 27. Se for da linha Lava Auto, retorna a imagem oficial anexada (LAVA_AUTO_IMAGE)
- * 28. Fallback: placeholder genérico de produto
+ * 28. Se for da linha Silicone Translúcida, retorna a imagem oficial anexada (SILICONE_TRANSLUCIDA_IMAGE)
+ * 29. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -889,6 +910,10 @@ export function getProductImage(
     return LAVA_AUTO_IMAGE
   }
 
+  if (isSiliconeTranslucida(product)) {
+    return SILICONE_TRANSLUCIDA_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -927,6 +952,7 @@ export function getProductImage(
  * - Se for Gás Lonada Preta, retorna [GAS_LONADA_PRETA_IMAGE].
  * - Se for Gás / Flexível PVC, retorna [GAS_PVC_IMAGE].
  * - Se for Lava Auto, retorna [LAVA_AUTO_IMAGE].
+ * - Se for Silicone Translúcida, retorna [SILICONE_TRANSLUCIDA_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1053,6 +1079,10 @@ export function getProductImages(
 
   if (isLavaAuto(product)) {
     return [LAVA_AUTO_IMAGE]
+  }
+
+  if (isSiliconeTranslucida(product)) {
+    return [SILICONE_TRANSLUCIDA_IMAGE]
   }
 
   return [fallbackUrl]
