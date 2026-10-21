@@ -51,8 +51,10 @@ import {
   SILICONE_TRANSLUCIDA_IMAGE,
   LIMPADOR_PARABRISA_IMAGE,
   CHUVEIRO_IMAGE,
+  KORAX_R6_MULTIUSO_IMAGE,
   isLimpadorParabrisa,
   isChuveiro,
+  isKoraxR6Multiuso,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**

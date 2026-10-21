@@ -27,6 +27,8 @@ import lavaAutoImg from '@/assets/lavaauto-f265e.png'
 import siliconeTranslucidaImg from '@/assets/siliconetranslucida-fe693.png'
 import limpadorParabrisaImg from '@/assets/limpador-parabrisa'
 import chuveiroImg from '@/assets/chuveiro'
+import koraxR6MultiusoImg from '@/assets/korax-r6-multiuso'
+import { normalizeBrandKey } from './brand'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
   'https://img.usecurling.com/p/800/800?q=hydraulic%20hose&color=black'
@@ -59,6 +61,7 @@ export const LAVA_AUTO_IMAGE = lavaAutoImg
 export const SILICONE_TRANSLUCIDA_IMAGE = siliconeTranslucidaImg
 export const LIMPADOR_PARABRISA_IMAGE = limpadorParabrisaImg
 export const CHUVEIRO_IMAGE = chuveiroImg
+export const KORAX_R6_MULTIUSO_IMAGE = koraxR6MultiusoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -787,6 +790,43 @@ export function isChuveiro(product: ProductImageSubject | null | undefined): boo
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA R6 MULTIUSO" da marca KORAX.
+ * Regras:
+ * - Deve pertencer à marca KORAX (usando normalizeBrandKey / normalizeProductBrand ou detecção de marca Korax)
+ * - Nome do produto deve conter "R6" como token isolado (limite de palavra \br6\b — NÃO casar bitolas nem 100R6 colado)
+ * - Deve conter a palavra inteira "MULTIUSO" (tolerante a acentos e maiúsculas/minúsculas: \bmulti[uú]so\b)
+ *
+ * NÃO casam:
+ * - R6 de outras marcas (ex: Balflex Texmaster R6, Balflex R6 Multipurpose)
+ * - Outros modelos Korax ou hidráulicos (R1, R2, R7, R12, R14, R17, 4SP, 4SH, Supersteam, Fuel Pump)
+ * - Produtos "MULTIUSO" sem "R6" isolado no nome
+ */
+export function isKoraxR6Multiuso(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  // 1. Marca normalizada deve ser KORAX
+  const brandKey = normalizeBrandKey(product.brand)
+  const isKorax =
+    brandKey === 'korax' ||
+    (product.brand ? /\bkorax\b/i.test(product.brand) : false) ||
+    isKoraxBrand(product)
+
+  if (!isKorax) {
+    return false
+  }
+
+  // 2. Detecção pelo nome/descrições: exige 'R6' como token isolado E 'MULTIUSO' como palavra inteira
+  const productName = product.name || ''
+  const combinedText = getSubjectCombinedText(product)
+
+  // O nome do produto deve ter "R6" isolado
+  const hasR6Token = /\br6\b/i.test(productName) || /\br6\b/i.test(combinedText)
+  const hasMultiuso = /\bmulti[uú]so\b/i.test(productName) || /\bmulti[uú]so\b/i.test(combinedText)
+
+  return hasR6Token && hasMultiuso
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -819,7 +859,8 @@ export function isChuveiro(product: ProductImageSubject | null | undefined): boo
  * 28. Se for da linha Silicone Translúcida, retorna a imagem oficial anexada (SILICONE_TRANSLUCIDA_IMAGE)
  * 29. Se for da linha Limpador Parabrisa, retorna a imagem oficial anexada (LIMPADOR_PARABRISA_IMAGE)
  * 30. Se for da linha Chuveiro, retorna a imagem oficial anexada (CHUVEIRO_IMAGE)
- * 31. Fallback: placeholder genérico de produto
+ * 31. Se for da linha Korax R6 Multiuso, retorna a imagem oficial anexada (KORAX_R6_MULTIUSO_IMAGE)
+ * 32. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -868,6 +909,10 @@ export function getProductImage(
 
   if (isKoraxKobra2(product)) {
     return KORAX_KOBRA2_IMAGE
+  }
+
+  if (isKoraxR6Multiuso(product)) {
+    return KORAX_R6_MULTIUSO_IMAGE
   }
 
   if (isBalflexFuelPump(product)) {
@@ -1000,6 +1045,7 @@ export function getProductImage(
  * - Se for Silicone Translúcida, retorna [SILICONE_TRANSLUCIDA_IMAGE].
  * - Se for Limpador Parabrisa, retorna [LIMPADOR_PARABRISA_IMAGE].
  * - Se for Chuveiro, retorna [CHUVEIRO_IMAGE].
+ * - Se for Korax R6 Multiuso, retorna [KORAX_R6_MULTIUSO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1050,6 +1096,10 @@ export function getProductImages(
 
   if (isKoraxKobra2(product)) {
     return [KORAX_KOBRA2_IMAGE]
+  }
+
+  if (isKoraxR6Multiuso(product)) {
+    return [KORAX_R6_MULTIUSO_IMAGE]
   }
 
   if (isBalflexFuelPump(product)) {
