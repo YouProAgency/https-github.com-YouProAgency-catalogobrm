@@ -52,6 +52,8 @@ import {
   LIMPADOR_PARABRISA_IMAGE,
   CHUVEIRO_IMAGE,
   KORAX_R6_MULTIUSO_IMAGE,
+  isBalflexTexmaster,
+  isBalflexR6Multipurpose,
   isLimpadorParabrisa,
   isChuveiro,
   isKoraxR6Multiuso,
@@ -4111,6 +4113,553 @@ export function runProductImageSelfCheck(): boolean {
           `Item ${item.sku} (${item.name}) regressão detectada: esperava imagem dedicada`,
         )
       }
+    }
+  }
+
+  // --- Validação da Linha Korax R6 Multiuso (31ª linha fotografada) ---
+  // 1. Casos POSITIVOS: os 5 produtos Korax R6 MULTIUSO do banco (SKUs 9221, 9118, 9120, 9027 e 9119)
+  // além de variações com acento, caixa baixa e variações de espaçamento
+  const koraxR6MultiusoPositiveCases = [
+    {
+      sku: '9221',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      category: 'MANGUEIRA HIDRAULICA',
+      unit: 'MT',
+    },
+    {
+      sku: '9118',
+      name: 'MANGUEIRA R6 1/4" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      category: 'MANGUEIRA HIDRAULICA',
+      unit: 'MT',
+    },
+    {
+      sku: '9120',
+      name: 'MANGUEIRA R6 3/8" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      category: 'MANGUEIRA HIDRAULICA',
+      unit: 'MT',
+    },
+    {
+      sku: '9027',
+      name: 'MANGUEIRA R6 3/4" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      category: 'MANGUEIRA HIDRAULICA',
+      unit: 'MT',
+    },
+    {
+      sku: '9119',
+      name: 'MANGUEIRA R6 5/16" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      category: 'MANGUEIRA HIDRAULICA',
+      unit: 'MT',
+    },
+    // Variações de caixa baixa, acentuação (MULTIÚSO) e detecção de marca no texto
+    {
+      sku: '9221-lower',
+      name: 'mangueira r6 1/2" multiuso - oleo/solvente/ar/agua',
+      brand: 'korax',
+    },
+    {
+      sku: '9221-accent',
+      name: 'MANGUEIRA R6 1/2" MULTIÚSO - ÓLEO/SOLVENTE/AR/ÁGUA',
+      brand: 'KORAX',
+    },
+    {
+      sku: '9221-brand-in-name',
+      name: 'MANGUEIRA KORAX R6 1/2" MULTIUSO',
+      brand: '',
+    },
+  ]
+
+  for (const item of koraxR6MultiusoPositiveCases) {
+    if (!isKoraxR6Multiuso(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isKoraxR6Multiuso`)
+    }
+    // Não pode casar com outras linhas de R6 (ex: Balflex Texmaster ou Balflex Multipurpose)
+    if (isBalflexTexmaster(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isBalflexTexmaster`)
+    }
+    if (isBalflexR6Multipurpose(item)) {
+      throw new Error(
+        `Item ${item.sku} (${item.name}) NÃO deveria casar com isBalflexR6Multipurpose`,
+      )
+    }
+    // Não pode casar com Kobra 1 nem Kobra 2
+    if (isKoraxKobra1(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isKoraxKobra1`)
+    }
+    if (isKoraxKobra2(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isKoraxKobra2`)
+    }
+    if (getProductImage(item) !== KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou KORAX_R6_MULTIUSO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [KORAX_R6_MULTIUSO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria do campo image/images do banco prevalece sobre a foto de linha
+  const customImgKoraxR6 = {
+    sku: '9221',
+    name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+    brand: 'KORAX',
+    image: 'https://exemplo.com/foto-custom-r6-multiuso.jpg',
+  }
+  if (getProductImage(customImgKoraxR6) !== 'https://exemplo.com/foto-custom-r6-multiuso.jpg') {
+    throw new Error(
+      'Imagem própria do produto (image) deve ter precedência sobre KORAX_R6_MULTIUSO_IMAGE',
+    )
+  }
+
+  const customGalleryKoraxR6 = {
+    sku: '9221',
+    name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+    brand: 'KORAX',
+    images: ['https://exemplo.com/galeria-1.jpg', 'https://exemplo.com/galeria-2.jpg'],
+  }
+  const galleryRes = getProductImages(customGalleryKoraxR6)
+  if (galleryRes.length !== 2 || galleryRes[0] !== 'https://exemplo.com/galeria-1.jpg') {
+    throw new Error('Galeria própria de imagens deve ter precedência sobre KORAX_R6_MULTIUSO_IMAGE')
+  }
+
+  // 2. Casos NEGATIVOS:
+  // a) R6 da Balflex NÃO casam (SKUs 933 e 3636 reais do banco)
+  const balflexR6NegativeCases = [
+    {
+      sku: '933',
+      name: 'MANGUEIRA R6 1/2" TEXMASTER 1 2,8 MPA / 410 PSI / 28 BAR',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    {
+      sku: '3636',
+      name: 'MANGUEIRA R6 1/2" MULTIPURPOSE OLEO/SOLVENTE/AR/AGUA',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+  ]
+
+  for (const item of balflexR6NegativeCases) {
+    if (isKoraxR6Multiuso(item)) {
+      throw new Error(
+        `Item Balflex ${item.sku} (${item.name}) NÃO deve casar com isKoraxR6Multiuso`,
+      )
+    }
+    if (getProductImage(item) === KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(`Item Balflex ${item.sku} NÃO deve receber KORAX_R6_MULTIUSO_IMAGE`)
+    }
+    if (getProductImage(item) !== item.expectedImg) {
+      throw new Error(`Item Balflex ${item.sku} não retornou a imagem esperada da Balflex`)
+    }
+  }
+
+  // b) Hidráulicos de outras séries Korax e Balflex (R1, R2, R7, R12, R13, R15, R17, 4SP, 4SH, Supersteam, Fuel Pump)
+  const otherHydraulicsNegativeCases = [
+    // R1 Kobra 1
+    {
+      sku: '4982',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    // R2 Kobra 2
+    {
+      sku: '4985',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    // R7
+    {
+      sku: '7701',
+      name: 'MANGUEIRA R7 1/4" TERMOPLASTICA MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // R12
+    {
+      sku: '9999',
+      name: 'MANGUEIRA R12 3/4" KOBRA MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // R13
+    {
+      sku: '7713',
+      name: 'MANGUEIRA R13 3/4" 4 TRAMAS MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // R14 Teflon
+    {
+      sku: '4592',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    // R15
+    {
+      sku: '7715',
+      name: 'MANGUEIRA R15 1" 6 TRAMAS MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // R17
+    {
+      sku: '6689',
+      name: 'MANGUEIRA R17 1/2" ELITE MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // 4SP
+    {
+      sku: '7704',
+      name: 'MANGUEIRA 4SP 3/4" 4 TRAMAS MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // 4SH
+    {
+      sku: '7705',
+      name: 'MANGUEIRA 4SH 1" 4 TRAMAS MULTIUSO',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    // Balflex Supersteam
+    {
+      sku: '9917',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 210C 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    // Balflex Fuel Pump
+    {
+      sku: '9916',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+  ]
+
+  for (const item of otherHydraulicsNegativeCases) {
+    if (isKoraxR6Multiuso(item)) {
+      throw new Error(`Série ${item.name} NÃO deveria casar com isKoraxR6Multiuso`)
+    }
+    if (getProductImage(item) === KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(`Série ${item.name} NÃO deveria receber KORAX_R6_MULTIUSO_IMAGE`)
+    }
+    if (getProductImage(item) !== item.expectedImg) {
+      throw new Error(`Série ${item.name} não retornou a imagem esperada`)
+    }
+  }
+
+  // c) Produto MULTIUSO sem "R6" no nome NÃO deve casar
+  const multiusoSemR6Cases = [
+    {
+      sku: '7720',
+      name: 'MANGUEIRA MULTIUSO AR E AGUA 1/2" 300 PSI',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '7721',
+      name: 'MANGUEIRA TRANÇADA MULTIUSO 3/8"',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '7722',
+      name: 'MANGUEIRA LONADA MULTIUSO 1"',
+      brand: 'KORAX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+  ]
+
+  for (const item of multiusoSemR6Cases) {
+    if (isKoraxR6Multiuso(item)) {
+      throw new Error(`Produto sem R6 (${item.name}) NÃO deveria casar com isKoraxR6Multiuso`)
+    }
+    if (getProductImage(item) === KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(`Produto sem R6 (${item.name}) NÃO deve receber KORAX_R6_MULTIUSO_IMAGE`)
+    }
+  }
+
+  // d) Marca diferente (Ibirá/Balflex/Kanaflex/outras) com nome hipotético R6 MULTIUSO NÃO deve casar
+  const otherBrandHypotheticalR6 = [
+    {
+      sku: '7730',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'IBIRÁ',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '7731',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'BALFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '7732',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KANAFLEX',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+    {
+      sku: '7733',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'OUTRA MARCA',
+      expectedImg: DEFAULT_PRODUCT_PLACEHOLDER,
+    },
+  ]
+
+  for (const item of otherBrandHypotheticalR6) {
+    if (isKoraxR6Multiuso(item)) {
+      throw new Error(
+        `Produto de outra marca (${item.brand}) NÃO deveria casar com isKoraxR6Multiuso`,
+      )
+    }
+    if (getProductImage(item) === KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(
+        `Produto de outra marca (${item.brand}) NÃO deve receber KORAX_R6_MULTIUSO_IMAGE`,
+      )
+    }
+  }
+
+  // 3. NÃO-REGRESSÃO: As 32 linhas fotografadas anteriores continuam com as fotos delas
+  // Incluindo explicitamente SKU 8096 (Limpador Parabrisa) e SKU 2234 (Chuveiro)
+  const nonRegressionLines = [
+    // 1. Balflex Forza Uno Tropic
+    {
+      sku: 'nr-1',
+      name: 'MANGUEIRA BALFLEX FORZA UNO TROPIC 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_TROPIC_IMAGE,
+    },
+    // 2. Balflex Forza Uno
+    {
+      sku: 'nr-2',
+      name: 'MANGUEIRA BALFLEX FORZA UNO 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_UNO_IMAGE,
+    },
+    // 3. Balflex Forza Due Tropic
+    {
+      sku: 'nr-3',
+      name: 'MANGUEIRA BALFLEX FORZA DUE TROPIC 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_TROPIC_IMAGE,
+    },
+    // 4. Balflex Forza Due
+    {
+      sku: 'nr-4',
+      name: 'MANGUEIRA BALFLEX FORZA DUE 3/8"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FORZA_DUE_IMAGE,
+    },
+    // 5. Balflex Texmaster
+    {
+      sku: 'nr-5',
+      name: 'MANGUEIRA BALFLEX TEXMASTER 2 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_TEXMASTER_IMAGE,
+    },
+    // 6. Balflex R6 Multipurpose
+    {
+      sku: 'nr-6',
+      name: 'MANGUEIRA BALFLEX R6 MULTIPURPOSE 1/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_R6_MULTIPURPOSE_IMAGE,
+    },
+    // 7. Korax Kobra 1
+    {
+      sku: 'nr-7',
+      name: 'MANGUEIRA R1 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA1_IMAGE,
+    },
+    // 8. Korax Kobra 2
+    {
+      sku: 'nr-8',
+      name: 'MANGUEIRA R2 1/2" KOBRA',
+      brand: 'KORAX',
+      expectedImg: KORAX_KOBRA2_IMAGE,
+    },
+    // 9. Balflex Fuel Pump
+    {
+      sku: 'nr-9',
+      name: 'MANGUEIRA BALFLEX FUEL PUMP 3/4"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_FUEL_PUMP_IMAGE,
+    },
+    // 10. Balflex Supersteam
+    {
+      sku: 'nr-10',
+      name: 'MANGUEIRA BALFLEX SUPERSTEAM 210C 1/2"',
+      brand: 'BALFLEX',
+      expectedImg: BALFLEX_SUPERSTEAM_IMAGE,
+    },
+    // 11. Blindada Gás FG
+    {
+      sku: 'nr-11',
+      name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO',
+      brand: 'CONTUFLEX',
+      expectedImg: BLINDADA_GAS_FG_IMAGE,
+    },
+    // 12. Cristal Trançada
+    {
+      sku: 'nr-12',
+      name: 'MANGUEIRA CRISTAL TRANÇADA 1" PT250',
+      brand: 'IBIRÁ',
+      expectedImg: CRISTAL_TRANCADA_IMAGE,
+    },
+    // 13. Cristal Liso
+    {
+      sku: 'nr-13',
+      name: 'MANGUEIRA CRISTAL LISA 1/4" X 2.0MM 50 LBS',
+      brand: 'IBIRA',
+      expectedImg: CRISTAL_IMAGE,
+    },
+    // 14. Saída Drenagem
+    {
+      sku: 'nr-14',
+      name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM',
+      brand: 'IBIRÁ',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // 15. Mangueira Entrada
+    {
+      sku: 'nr-15',
+      name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS',
+      brand: '',
+      expectedImg: SAIDA_DRENAGEM_IMAGE,
+    },
+    // 16. Saída Corrugada Branca
+    {
+      sku: 'nr-16',
+      name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA',
+      brand: '',
+      expectedImg: SAIDA_CORRUGADA_BRANCA_IMAGE,
+    },
+    // 17. Saída Tanquinho
+    {
+      sku: 'nr-17',
+      name: 'MANGUEIRA SAIDA TANQUINHO 1,5M',
+      brand: '',
+      expectedImg: SAIDA_TANQUINHO_IMAGE,
+    },
+    // 18. Sucção Laranja
+    {
+      sku: 'nr-18',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedImg: SUCCAO_LARANJA_IMAGE,
+    },
+    // 19. Sucção Cinza / Vácuo Ar Cinza
+    {
+      sku: 'nr-19',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedImg: VACUO_AR_CINZA_IMAGE,
+    },
+    // 20. Sucção Azul
+    {
+      sku: 'nr-20',
+      name: 'MANGUEIRA SUCÇAO 2.1/2" AZUL',
+      brand: 'KANAFLEX',
+      expectedImg: SUCCAO_AZUL_IMAGE,
+    },
+    // 21. Vácuo Ar Preta
+    {
+      sku: 'nr-21',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedImg: VACUO_AR_PRETA_IMAGE,
+    },
+    // 22. Alumínio Proteção
+    {
+      sku: 'nr-22',
+      name: 'MANGUEIRA FLEXIVEL ALUMINIO PROTEÇÃO 24MM INT',
+      brand: '',
+      expectedImg: ALUMINIO_PROTECAO_IMAGE,
+    },
+    // 23. R14 Teflon Korax
+    {
+      sku: 'nr-23',
+      name: 'MANGUEIRA R14 1/2" TEFLON 1.520 PSI',
+      brand: 'KORAX',
+      expectedImg: R14_TEFLON_IMAGE,
+    },
+    // 24. Lisa Irrigação
+    {
+      sku: 'nr-24',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 1" PAREDE 3,0 MM VERMELHO 100M',
+      brand: '',
+      expectedImg: LISA_IRRIGACAO_IMAGE,
+    },
+    // 25. Gás Lonada Preta
+    {
+      sku: 'nr-25',
+      name: 'MANGUEIRA GAS GNV/GLP/GN 1/4" PRETA LONADA',
+      brand: '',
+      expectedImg: GAS_LONADA_PRETA_IMAGE,
+    },
+    // 26. Gás / Flexível PVC
+    {
+      sku: 'nr-26',
+      name: 'MANGUEIRA GAS PVC 3/8" PT-250 9K C/ TARJA',
+      brand: '',
+      expectedImg: GAS_PVC_IMAGE,
+    },
+    // 27. Lava Auto
+    {
+      sku: 'nr-27',
+      name: 'MANGUEIRA LAVA AUTO 1/2" KORFLEX AZUL 1000 PSI',
+      brand: 'KORAX',
+      expectedImg: LAVA_AUTO_IMAGE,
+    },
+    // 28. Silicone Translúcida
+    {
+      sku: 'nr-28',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 6 X 4 MM',
+      brand: '',
+      expectedImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    // 29. Esguicho Limpador Parabrisa (SKU fixo 8096)
+    {
+      sku: '8096',
+      name: 'MANGUEIRA ESGUICHO LIMPADOR PARABRISA - SILICONADA',
+      brand: '',
+      expectedImg: LIMPADOR_PARABRISA_IMAGE,
+    },
+    // 30. Chuveiro (SKU fixo 2234)
+    {
+      sku: '2234',
+      name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA',
+      brand: '',
+      expectedImg: CHUVEIRO_IMAGE,
+    },
+  ]
+
+  for (const item of nonRegressionLines) {
+    if (isKoraxR6Multiuso(item)) {
+      throw new Error(
+        `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isKoraxR6Multiuso`,
+      )
+    }
+    const detectedImg = getProductImage(item)
+    if (detectedImg === KORAX_R6_MULTIUSO_IMAGE) {
+      throw new Error(
+        `Linha prévia ${item.sku} (${item.name}) NÃO deve retornar KORAX_R6_MULTIUSO_IMAGE`,
+      )
+    }
+    if (detectedImg !== item.expectedImg) {
+      throw new Error(
+        `Regressão detectada no item ${item.sku} (${item.name}): esperava ${item.expectedImg}, obteve ${detectedImg}`,
+      )
     }
   }
 
