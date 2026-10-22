@@ -1,7 +1,11 @@
 import {
   CANONICAL_HYDRAULIC_CATEGORY,
+  CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY,
   hasRSeriesDesignation,
   isHydraulicProduct,
+  isSuctionAndDischargeProduct,
+  isAirAndWaterProduct,
+  isGardenProduct,
   getProductDisplayCategory,
   matchesCategoryFilter,
   matchesSubcategoryFilter,
@@ -194,8 +198,13 @@ export function runCategoryNormalizationSelfCheck() {
     { name: 'MANGUEIRA SUCÇÃO E DESCARGA PESADA 2"', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA SUCCAO LARANJA 3"', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA VACUO AR SVE PRATA 1.1/2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA R2 1/2"', category: 'MANGUEIRA HIDRAULICA' },
     { name: 'MANGUEIRA CRISTAL LISA 1/2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA', category: 'MANGUEIRAS' },
   ]
 
   const airWaterResults = industrialCatalog.filter((p) =>
@@ -210,9 +219,10 @@ export function runCategoryNormalizationSelfCheck() {
   const suctionResults = industrialCatalog.filter((p) =>
     matchesHierarchyFilter(p, 'Mangueiras Industriais', 'Sucção e Descarga'),
   )
-  if (suctionResults.length !== 3) {
+  // Devem entrar: SUCÇÃO E DESCARGA, SUCCAO LARANJA, VACUO AR, ENTRADA, SAIDA DRENAGEM, SAIDA CORRUGADA = 6 itens
+  if (suctionResults.length !== 6) {
     throw new Error(
-      `matchesHierarchyFilter("Mangueiras Industriais", "Sucção e Descarga") esperava 3 itens, retornou ${suctionResults.length}`,
+      `matchesHierarchyFilter("Mangueiras Industriais", "Sucção e Descarga") esperava 6 itens, retornou ${suctionResults.length}`,
     )
   }
 
@@ -256,6 +266,121 @@ export function runCategoryNormalizationSelfCheck() {
     )
   ) {
     throw new Error('matchesSubcategoryFilter aceitou Cristal indevidamente em Hidráulicas')
+  }
+
+  // 12. Bateria de testes detalhada para subcategoria "Sucção e Descarga" (Positivos reais do banco e Negativos)
+  const positiveSuctionCases = [
+    // Sucção variantes de cor/material
+    { name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇÃO LARANJA 3"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇAO 1" ISAL TRANSPARENTE C/ ESPIRAL AZUL', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇAO 3" AZUL', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇAO 1.1/4" KKE TRANSPARENTE C/ ESPIRAL VERDE', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SUCÇAO 1" KA ATOXICA TRANSPARENTE ESPIRAL BRANCO', category: 'MANGUEIRAS' },
+    // Vácuo ar
+    { name: 'MANGUEIRA VACUO AR 1.1/4" SVE PRATA CONTINENTAL', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR 1" IVCL CINZA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR 1.3/4" KV CINZA REFORÇADA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR 2" KEV AZUL REFORÇADA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA VACUO AR 2" IVPU PU-C TRANSPARENTE COBREADA', category: 'MANGUEIRAS' },
+    // Entrada de máquina (6 SKUs reais)
+    { name: 'MANGUEIRA ENTRADA 3/8" X 1,20 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 1,40 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 1,80 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 2,00 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 3,0M CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ENTRADA 3/8" X 5,00 MT CINZA VAL 14FIOS', category: 'MANGUEIRAS' },
+    // Saída de máquina / drenagem / corrugada / tanquinho
+    { name: 'MANGUEIRA SAIDA DRENAGEM 1,55M CINZA BOCAL RETO 22MM', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAIDA DRENAGEM 2,00M CINZA BOCAL CURVO', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAIDA CORRUGADA 1,30M 3/4" BRANCA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAÍDA CORRUGADA 2,0M 3/4" BRANCA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA SAIDA TANQUINHO 1,5M', category: 'MANGUEIRAS' },
+    // Termos de descarga e aspiração
+    { name: 'MANGUEIRA DE DESCARGA PESADA 4"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ASPIRAÇÃO E DESCARGA 2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA ASPIRACAO INDUSTRIAL 3"', category: 'MANGUEIRAS' },
+  ]
+
+  for (const item of positiveSuctionCases) {
+    if (!isSuctionAndDischargeProduct(item)) {
+      throw new Error(`isSuctionAndDischargeProduct falhou para caso positivo: "${item.name}"`)
+    }
+    if (!matchesSubcategoryFilter(item, 'Sucção e Descarga')) {
+      throw new Error(`matchesSubcategoryFilter("Sucção e Descarga") falhou para: "${item.name}"`)
+    }
+    if (!matchesSubcategoryFilter(item, CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY)) {
+      throw new Error(
+        `matchesSubcategoryFilter("${CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY}") falhou para: "${item.name}"`,
+      )
+    }
+    if (!matchesHierarchyFilter(item, 'Mangueiras Industriais', 'Sucção e Descarga')) {
+      throw new Error(
+        `matchesHierarchyFilter("Mangueiras Industriais", "Sucção e Descarga") falhou para: "${item.name}"`,
+      )
+    }
+  }
+
+  // 13. Casos negativos estritos (Precedência: Hidráulica, Ar e Água, Jardim, Chuveiro, etc.)
+  const negativeSuctionCases = [
+    // Hidráulicas com menção a sucção/ar/água (ex: R6 Multipurpose OLEO/SOLVENTE/AR/AGUA, R4 sucção de óleo hidráulico)
+    {
+      name: 'MANGUEIRA R6 1" MULTIPURPOSE OLEO/SOLVENTE/AR/AGUA',
+      category: 'MANGUEIRA HIDRAULICA',
+    },
+    { name: 'MANGUEIRA R4 SUCÇÃO HIDRÁULICA 1.1/2"', category: 'MANGUEIRA HIDRAULICA' },
+    { name: 'MANGUEIRA R1 1/2" FORZA UNO', category: 'MANGUEIRA HIDRAULICA' },
+    { name: 'MANGUEIRA R2 3/4" FORZA DUE', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA R14 TEFLON 1/2"', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA 4SP 1/2" BALMASTER', category: 'MANGUEIRA HIDRAULICA' },
+    // Ar e Água (permanece exclusivo na subcategoria Ar e Água)
+    { name: 'MANGUEIRA AR E AGUA 1/2" PT300 PRETA', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA AR E ÁGUA 3/4" PT500', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA AR E AGUA 1" PT300 PRETA', category: 'MANGUEIRAS' },
+    // Jardim
+    { name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AMARELA', category: 'MANGUEIRAS' },
+    // Chuveiro (SKU 2234: PVC branca, não é saída nem sucção)
+    { name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA', category: 'MANGUEIRAS' },
+    // Outras mangueiras comuns
+    { name: 'MANGUEIRA LAVA AUTO 1/2" 1000 PSI', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA CRISTAL LISA 1/2" X 2.0MM', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA CRISTAL TRANÇADA 3/4" PT250', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA BLINDADA GAS FG 1/2" X MF 1/2" - 0,6 METRO', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA DUPLA SOLDA 5/16" OXIG/ACET 300 PSI', category: 'MANGUEIRAS' },
+  ]
+
+  for (const item of negativeSuctionCases) {
+    if (isSuctionAndDischargeProduct(item)) {
+      throw new Error(
+        `isSuctionAndDischargeProduct aceitou indevidamente caso negativo: "${item.name}"`,
+      )
+    }
+    if (matchesSubcategoryFilter(item, 'Sucção e Descarga')) {
+      throw new Error(
+        `matchesSubcategoryFilter("Sucção e Descarga") aceitou indevidamente: "${item.name}"`,
+      )
+    }
+    if (matchesHierarchyFilter(item, 'Mangueiras Industriais', 'Sucção e Descarga')) {
+      throw new Error(
+        `matchesHierarchyFilter("Mangueiras Industriais", "Sucção e Descarga") aceitou indevidamente: "${item.name}"`,
+      )
+    }
+  }
+
+  // 14. Garantir que nenhuma mangueira caia em "Hidráulicas", "Ar e Água" e "Sucção e Descarga" simultaneamente
+  const allSubcategories = ['Hidráulicas', 'Ar e Água', 'Sucção e Descarga']
+  const crossCheckList = [...positiveSuctionCases, ...negativeSuctionCases, ...industrialCatalog]
+
+  for (const item of crossCheckList) {
+    const matchedSubs = allSubcategories.filter((sub) => matchesSubcategoryFilter(item, sub))
+    if (matchedSubs.length > 1) {
+      throw new Error(
+        `Conflito de subcategorias: item "${item.name}" caiu em múltiplas subcategorias: ${matchedSubs.join(', ')}`,
+      )
+    }
   }
 
   return true

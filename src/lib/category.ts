@@ -12,6 +12,7 @@
  */
 
 export const CANONICAL_HYDRAULIC_CATEGORY = 'Hidráulicas'
+export const CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY = 'Sucção e Descarga'
 
 /**
  * Regex para detectar tokens isolados de série R com dígitos no nome do produto.
@@ -83,6 +84,85 @@ export function getProductDisplayCategory(item: {
 }
 
 /**
+ * Checa se o nome/categoria corresponde a mangueira de jardim.
+ */
+export function isGardenProduct(item: { name?: string | null; category?: string | null }): boolean {
+  const nameNorm = normalizeCategoryKey(item?.name)
+  const catNorm = normalizeCategoryKey(item?.category)
+  return /\bjardim\b/.test(nameNorm) || /\bjardim\b/.test(catNorm)
+}
+
+/**
+ * Checa se o nome/categoria corresponde à subcategoria "Ar e Água".
+ */
+export function isAirAndWaterProduct(item: {
+  name?: string | null
+  category?: string | null
+}): boolean {
+  const nameNorm = normalizeCategoryKey(item?.name)
+  const catNorm = normalizeCategoryKey(item?.category)
+  return /\bar\s+e\s+agua\b/.test(nameNorm) || /\bar\s+e\s+agua\b/.test(catNorm)
+}
+
+/**
+ * Determina se um item pertence à subcategoria canônica "Sucção e Descarga".
+ *
+ * Inclusões:
+ * 1. "sucção" / "succao" / "sução" / "suc cao" (ex: mangueiras de sucção laranja, azul, cinza, atóxica...)
+ * 2. "descarga" (mangueiras de descarga industrial/máquina)
+ * 3. "entrada" (ex: MANGUEIRA ENTRADA 3/8" cinza máquina lavadora)
+ * 4. "saída" / "saida" (ex: SAÍDA DRENAGEM, SAÍDA CORRUGADA, SAÍDA TANQUINHO)
+ * 5. "vácuo ar" / "vacuo ar" (ex: MANGUEIRA VACUO AR IVCL, KEL-SC, KV, SVE, IVPU...)
+ * 6. "aspiração" / "aspiracao"
+ *
+ * Exclusões explícitas com precedência estrita:
+ * 1. Produtos hidráulicos (isHydraulicProduct: R1..R19, 4SP, 4SH, MANGUEIRA HIDRAULICA, Texmaster R6, etc.) NUNCA entram.
+ * 2. Produtos "Ar e Água" (isAirAndWaterProduct: AR E AGUA) NUNCA entram.
+ * 3. Mangueiras de jardim (isGardenProduct: "jardim") NUNCA entram.
+ */
+export function isSuctionAndDischargeProduct(item: {
+  name?: string | null
+  category?: string | null
+}): boolean {
+  if (!item) return false
+
+  // 1. Exclusão estrita: Hidráulicas
+  if (isHydraulicProduct(item)) {
+    return false
+  }
+
+  // 2. Exclusão estrita: Ar e Água
+  if (isAirAndWaterProduct(item)) {
+    return false
+  }
+
+  // 3. Exclusão estrita: Jardim
+  if (isGardenProduct(item)) {
+    return false
+  }
+
+  const nameNorm = normalizeCategoryKey(item.name)
+  const catNorm = normalizeCategoryKey(item.category)
+  const text = `${catNorm} ${nameNorm}`
+
+  // Termos positivos:
+  // a) Sucção
+  const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/.test(text) || /\bsuc\s+cao\b/.test(text)
+  // b) Descarga
+  const hasDescarga = /\bdescarga\b/.test(text)
+  // c) Entrada (ex: MANGUEIRA ENTRADA)
+  const hasEntrada = /\bentrada\b/.test(text)
+  // d) Saída / Saida (ex: SAIDA DRENAGEM, SAIDA CORRUGADA, SAIDA TANQUINHO)
+  const hasSaida = /\bsa[ií]da\b/.test(text)
+  // e) Vácuo ar / Vacuo ar
+  const hasVacuoAr = /\bv[aá]cuo\s+ar\b/.test(text)
+  // f) Aspiração / Aspiracao
+  const hasAspiracao = /\baspira[cç][aãá]o\b/.test(text) || /\baspira\b/.test(text)
+
+  return hasSuccao || hasDescarga || hasEntrada || hasSaida || hasVacuoAr || hasAspiracao
+}
+
+/**
  * Verifica se um produto atende ao filtro de categoria selecionado pelo usuário.
  * Se o filtro for CANONICAL_HYDRAULIC_CATEGORY ("Hidráulicas") ou a forma crua "MANGUEIRA HIDRAULICA",
  * verifica se o item é produto hidráulico (união de category crua + \bR\d+\b no nome).
@@ -141,17 +221,19 @@ export function matchesSubcategoryFilter(
   }
 
   if (normSub === 'ar e agua') {
-    if (!item?.name) return false
-    const nameNorm = normalizeCategoryKey(item.name)
-    return /\bar\s+e\s+agua\b/.test(nameNorm)
+    if (isHydraulicProduct(item)) {
+      return false
+    }
+    return isAirAndWaterProduct(item)
   }
 
-  if (normSub === 'succao e descarga' || normSub === 'succao' || normSub === 'succao / descarga') {
-    if (!item?.name) return false
-    const nameNorm = normalizeCategoryKey(item.name)
-    const hasSuccao = /\bsu[cç][cç]?[aãá]o\b/.test(nameNorm)
-    const hasVacuoAr = /\bv[aá]cuo\s+ar\b/.test(nameNorm)
-    return hasSuccao || hasVacuoAr
+  if (
+    normSub === 'succao e descarga' ||
+    normSub === 'succao' ||
+    normSub === 'descarga' ||
+    normSub === 'succao / descarga'
+  ) {
+    return isSuctionAndDischargeProduct(item)
   }
 
   // Fallback para campo subcategory preenchido ou busca por nome
