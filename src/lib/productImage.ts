@@ -28,6 +28,7 @@ import siliconeTranslucidaImg from '@/assets/siliconetranslucida-fe693.png'
 import limpadorParabrisaImg from '@/assets/limpador-parabrisa'
 import chuveiroImg from '@/assets/chuveiro'
 import koraxR6MultiusoImg from '@/assets/korax-r6-multiuso'
+import jardimVinhoPretoImg from '@/assets/jardim-vinho-preto'
 import { normalizeBrandKey } from './brand'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -62,6 +63,7 @@ export const SILICONE_TRANSLUCIDA_IMAGE = siliconeTranslucidaImg
 export const LIMPADOR_PARABRISA_IMAGE = limpadorParabrisaImg
 export const CHUVEIRO_IMAGE = chuveiroImg
 export const KORAX_R6_MULTIUSO_IMAGE = koraxR6MultiusoImg
+export const JARDIM_VINHO_PRETO_IMAGE = jardimVinhoPretoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -827,6 +829,26 @@ export function isKoraxR6Multiuso(product: ProductImageSubject | null | undefine
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA JARDIM VINHO/PRETO".
+ * Regra: exige SIMULTANEAMENTE as palavras isoladas "VINHO" E "PRETO"
+ * no texto consolidado do produto (nome + descrições), tolerante a acentuação,
+ * maiúsculas/minúsculas, espaços ao redor da barra ("VINHO/ PRETO", "VINHO / PRETO", "VINHO/PRETO") e hífen.
+ * Exclusivamente para a combinação vinho + preto; produtos vinho puro (como "VINHO TRICOTADA") NÃO casam.
+ */
+export function isJardimVinhoPreto(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  const hasVinho = /\bvinho\b/i.test(text)
+  const hasPreto = /\bpreto\b/i.test(text)
+
+  return hasVinho && hasPreto
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -860,7 +882,8 @@ export function isKoraxR6Multiuso(product: ProductImageSubject | null | undefine
  * 29. Se for da linha Limpador Parabrisa, retorna a imagem oficial anexada (LIMPADOR_PARABRISA_IMAGE)
  * 30. Se for da linha Chuveiro, retorna a imagem oficial anexada (CHUVEIRO_IMAGE)
  * 31. Se for da linha Korax R6 Multiuso, retorna a imagem oficial anexada (KORAX_R6_MULTIUSO_IMAGE)
- * 32. Fallback: placeholder genérico de produto
+ * 32. Se for da linha Mangueira Jardim Vinho/Preto, retorna a imagem oficial anexada (JARDIM_VINHO_PRETO_IMAGE)
+ * 33. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -1004,6 +1027,10 @@ export function getProductImage(
     return CHUVEIRO_IMAGE
   }
 
+  if (isJardimVinhoPreto(product)) {
+    return JARDIM_VINHO_PRETO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -1046,6 +1073,7 @@ export function getProductImage(
  * - Se for Limpador Parabrisa, retorna [LIMPADOR_PARABRISA_IMAGE].
  * - Se for Chuveiro, retorna [CHUVEIRO_IMAGE].
  * - Se for Korax R6 Multiuso, retorna [KORAX_R6_MULTIUSO_IMAGE].
+ * - Se for Mangueira Jardim Vinho/Preto, retorna [JARDIM_VINHO_PRETO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1188,6 +1216,10 @@ export function getProductImages(
 
   if (isChuveiro(product)) {
     return [CHUVEIRO_IMAGE]
+  }
+
+  if (isJardimVinhoPreto(product)) {
+    return [JARDIM_VINHO_PRETO_IMAGE]
   }
 
   return [fallbackUrl]

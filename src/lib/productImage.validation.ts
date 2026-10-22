@@ -57,6 +57,8 @@ import {
   isLimpadorParabrisa,
   isChuveiro,
   isKoraxR6Multiuso,
+  isJardimVinhoPreto,
+  JARDIM_VINHO_PRETO_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -4642,23 +4644,214 @@ export function runProductImageSelfCheck(): boolean {
       brand: '',
       expectedImg: CHUVEIRO_IMAGE,
     },
+    // 31. Korax R6 Multiuso (SKU 9221)
+    {
+      sku: '9221',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
   ]
 
   for (const item of nonRegressionLines) {
-    if (isKoraxR6Multiuso(item)) {
+    if (isKoraxR6Multiuso(item) && item.expectedImg !== KORAX_R6_MULTIUSO_IMAGE) {
       throw new Error(
         `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isKoraxR6Multiuso`,
       )
     }
-    const detectedImg = getProductImage(item)
-    if (detectedImg === KORAX_R6_MULTIUSO_IMAGE) {
+    if (isJardimVinhoPreto(item)) {
       throw new Error(
-        `Linha prévia ${item.sku} (${item.name}) NÃO deve retornar KORAX_R6_MULTIUSO_IMAGE`,
+        `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isJardimVinhoPreto`,
+      )
+    }
+    const detectedImg = getProductImage(item)
+    if (detectedImg === JARDIM_VINHO_PRETO_IMAGE) {
+      throw new Error(
+        `Linha prévia ${item.sku} (${item.name}) NÃO deve retornar JARDIM_VINHO_PRETO_IMAGE`,
       )
     }
     if (detectedImg !== item.expectedImg) {
       throw new Error(
         `Regressão detectada no item ${item.sku} (${item.name}): esperava ${item.expectedImg}, obteve ${detectedImg}`,
+      )
+    }
+  }
+
+  // --- Validação da Linha Mangueira Jardim Vinho/Preto (32ª regra fotografada) ---
+  // 1. Casos POSITIVOS:
+  // - SKU 2510 — "MANGUEIRA JARDIM 1/2\" X 2.5MM PT200 VINHO/ PRETO" (atenção ao espaço depois da barra)
+  // - SKU 3954 — "MANGUEIRA JARDIM 3/4\" X 2.5MM PT200 VINHO/PRETO" (sem espaço)
+  // - Variações com minúsculas, hífen, acentuação, espaços ao redor da barra
+  const jardimVinhoPretoPositiveCases = [
+    {
+      sku: '2510',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO/ PRETO',
+      brand: 'SUNFLEX',
+      category: 'MANGUEIRAS',
+    },
+    {
+      sku: '3954',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO/PRETO',
+      brand: 'SUNFLEX',
+      category: 'MANGUEIRAS',
+    },
+    // Variação de SKU 3950 mencionada no enunciado / testes hipotéticos
+    {
+      sku: '3950',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO/PRETO',
+      brand: 'SUNFLEX',
+      category: 'MANGUEIRAS',
+    },
+    // Variações de caixa baixa, espaços variados ao redor da barra, hífen e acento
+    {
+      sku: '2510-lower',
+      name: 'mangueira jardim 1/2" x 2.5mm pt200 vinho/ preto',
+      brand: 'sunflex',
+    },
+    {
+      sku: '3954-spaces',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO / PRETO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '2510-hyphen',
+      name: 'MANGUEIRA JARDIM VINHO-PRETO 1/2"',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '2510-words',
+      name: 'MANGUEIRA JARDIM VINHO E PRETO',
+      brand: 'SUNFLEX',
+    },
+  ]
+
+  for (const item of jardimVinhoPretoPositiveCases) {
+    if (!isJardimVinhoPreto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isJardimVinhoPreto`)
+    }
+    if (getProductImage(item) !== JARDIM_VINHO_PRETO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou JARDIM_VINHO_PRETO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== JARDIM_VINHO_PRETO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [JARDIM_VINHO_PRETO_IMAGE]`)
+    }
+  }
+
+  // Precedência de foto própria cadastrada no banco sobre JARDIM_VINHO_PRETO_IMAGE
+  const customImgJardimVinhoPreto = {
+    sku: '2510',
+    name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO/ PRETO',
+    brand: 'SUNFLEX',
+    image: 'https://exemplo.com/foto-custom-jardim-vinho.jpg',
+  }
+  if (
+    getProductImage(customImgJardimVinhoPreto) !==
+    'https://exemplo.com/foto-custom-jardim-vinho.jpg'
+  ) {
+    throw new Error(
+      'Imagem própria do produto (image) deve ter precedência sobre JARDIM_VINHO_PRETO_IMAGE',
+    )
+  }
+
+  const customGalleryJardimVinhoPreto = {
+    sku: '3954',
+    name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO/PRETO',
+    brand: 'SUNFLEX',
+    images: [
+      'https://exemplo.com/galeria-jardim-1.jpg',
+      'https://exemplo.com/galeria-jardim-2.jpg',
+    ],
+  }
+  const customGalleryRes = getProductImages(customGalleryJardimVinhoPreto)
+  if (
+    customGalleryRes.length !== 2 ||
+    customGalleryRes[0] !== 'https://exemplo.com/galeria-jardim-1.jpg'
+  ) {
+    throw new Error(
+      'Galeria própria de imagens deve ter precedência sobre JARDIM_VINHO_PRETO_IMAGE',
+    )
+  }
+
+  // 2. Casos NEGATIVOS explícitos:
+  // - SKU 2862 — "MANGUEIRA JARDIM 1/2\" X 2.5MM PT200 VINHO TRICOTADA" (é vinho puro, NÃO é vinho/preto)
+  // - Demais mangueiras de jardim:
+  //   * Azul/Preto (SKU 2554 e 8379)
+  //   * Amarela (SKU 9900)
+  //   * Laranja/Rosa (SKU 3075)
+  //   * Verde Fosco (SKU 4926)
+  //   * Verde/Preto (SKU 5422)
+  //   * Preta Lisa (SKU 790)
+  //   * Azul Lisa (SKU 2497)
+  const jardimNegativeCases = [
+    {
+      sku: '2862',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO TRICOTADA',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '2554',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '8379',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '9900',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AMARELA',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '3075',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 LARANJA/ROSA',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '4926',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VERDE FOSCO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '5422',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VERDE/PRETO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '790',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 PRETA LISA',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '2497',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA',
+      brand: 'SUNFLEX',
+    },
+    // Vinho isolado (sem preto)
+    {
+      sku: 'neg-vinho-1',
+      name: 'MANGUEIRA VINHO FLEXIVEL 1/2"',
+      brand: '',
+    },
+    // Preto isolado (sem vinho)
+    {
+      sku: 'neg-preto-1',
+      name: 'MANGUEIRA AR E AGUA 1/2" PT300 PRETO',
+      brand: 'IBIRÁ',
+    },
+  ]
+
+  for (const item of jardimNegativeCases) {
+    if (isJardimVinhoPreto(item)) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) NÃO deveria casar com isJardimVinhoPreto`,
+      )
+    }
+    if (getProductImage(item) === JARDIM_VINHO_PRETO_IMAGE) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) NÃO deve retornar JARDIM_VINHO_PRETO_IMAGE`,
       )
     }
   }
