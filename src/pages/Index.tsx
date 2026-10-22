@@ -37,6 +37,8 @@ import {
   matchesCategoryFilter,
   matchesHierarchyFilter,
   CANONICAL_HYDRAULIC_CATEGORY,
+  CANONICAL_AIR_AND_WATER_SUBCATEGORY,
+  normalizeCategoryKey,
 } from '@/lib/category'
 
 export default function Index() {
@@ -51,8 +53,17 @@ export default function Index() {
   const categoryParam = searchParams.get('category') || 'all'
   const brandParam = searchParams.get('brand') || 'all'
   const bitolaParam = searchParams.get('bitola') || 'all'
-  const subcategory = searchParams.get('sub')
+  const rawSubcategory = searchParams.get('sub')
   const featuredOnly = searchParams.get('featured') === 'true'
+
+  // Normalização canônica da subcategoria na URL (ex: redireciona link compartilhado legado ?sub=Jardim para "Ar e Água")
+  const subcategory = useMemo(() => {
+    if (!rawSubcategory) return null
+    if (normalizeCategoryKey(rawSubcategory) === 'jardim') {
+      return CANONICAL_AIR_AND_WATER_SUBCATEGORY
+    }
+    return rawSubcategory
+  }, [rawSubcategory])
 
   // Local state for search input to ensure instant typing responsiveness
   const [searchInput, setSearchInput] = useState(queryParam)
@@ -149,6 +160,15 @@ export default function Index() {
     setSearchParams(next, { replace: true })
   }
 
+  // Se a subcategoria selecionada for limpa via badge enquanto havia categoria pai (ou vice-versa),
+  // permite limpar ambos de uma só vez caso o usuário feche a categoria/subcategoria no badge
+  const handleClearCategoryHierarchy = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('category')
+    next.delete('sub')
+    setSearchParams(next, { replace: true })
+  }
+
   const hasActiveFilters = Boolean(
     queryParam.trim() ||
     (bitolaParam && bitolaParam !== 'all') ||
@@ -195,7 +215,6 @@ export default function Index() {
     if ((categoryParam && categoryParam !== 'all') || subcategory) {
       result = result.filter((p) => matchesHierarchyFilter(p, categoryParam, subcategory))
     }
-
     // 6. Featured
     if (featuredOnly) {
       result = result.filter((p) => p.featured)
@@ -332,6 +351,7 @@ export default function Index() {
           availableCategories={availableCategories}
           selectedSubcategory={subcategory}
           onSubcategoryChange={handleSubcategoryChange}
+          onClearCategoryHierarchy={handleClearCategoryHierarchy}
           totalResults={filteredProducts.length}
           totalCatalog={cleanProducts.length}
           onClearFilters={handleClearFilters}

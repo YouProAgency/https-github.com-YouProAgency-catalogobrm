@@ -27,6 +27,9 @@ import { useAuth } from '@/context/AuthContext'
 export function AppSidebar() {
   const location = useLocation()
   const { isAuthenticated } = useAuth()
+  const searchParams = new URLSearchParams(location.search)
+  const currentCategory = searchParams.get('category')
+  const currentSub = searchParams.get('sub')
 
   return (
     <Sidebar className="border-r border-border bg-white shadow-sm">
@@ -88,7 +91,9 @@ export function AppSidebar() {
                     <SidebarMenuSub>
                       {category.subcategories.map((sub) => {
                         const searchStr = `?category=${encodeURIComponent(category.name)}&sub=${encodeURIComponent(sub)}`
-                        const isActive = location.search === searchStr
+                        const isActive =
+                          (currentCategory === category.name && currentSub === sub) ||
+                          location.search === searchStr
                         return (
                           <SidebarMenuSubItem key={sub}>
                             <SidebarMenuSubButton

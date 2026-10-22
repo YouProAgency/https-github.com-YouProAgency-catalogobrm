@@ -1,10 +1,12 @@
 import {
   CANONICAL_HYDRAULIC_CATEGORY,
+  CANONICAL_AIR_AND_WATER_SUBCATEGORY,
   CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY,
   hasRSeriesDesignation,
   isHydraulicProduct,
   isSuctionAndDischargeProduct,
   isAirAndWaterProduct,
+  isAirAndWaterUnifiedProduct,
   isGardenProduct,
   getProductDisplayCategory,
   matchesCategoryFilter,
@@ -192,6 +194,7 @@ export function runCategoryNormalizationSelfCheck() {
   }
 
   // 10. Subcategoria "Ar e Água" e "Sucção e Descarga" funcionando no caminho do menu lateral
+  // NOTA: "Ar e Água" agora unifica os produtos de Ar e Água + produtos de Jardim no mesmo menu.
   const industrialCatalog = [
     { name: 'MANGUEIRA AR E AGUA 300 PSI 1/2"', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA AR E ÁGUA 200 LBS 3/4"', category: 'MANGUEIRAS' },
@@ -204,15 +207,17 @@ export function runCategoryNormalizationSelfCheck() {
     { name: 'MANGUEIRA R2 1/2"', category: 'MANGUEIRA HIDRAULICA' },
     { name: 'MANGUEIRA CRISTAL LISA 1/2"', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO', category: 'MANGUEIRAS' },
+    { name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AMARELA', category: 'MANGUEIRAS' },
     { name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA', category: 'MANGUEIRAS' },
   ]
 
   const airWaterResults = industrialCatalog.filter((p) =>
     matchesHierarchyFilter(p, 'Mangueiras Industriais', 'Ar e Água'),
   )
-  if (airWaterResults.length !== 2) {
+  // Unificado: 2 de ar e água + 2 de jardim = 4 itens
+  if (airWaterResults.length !== 4) {
     throw new Error(
-      `matchesHierarchyFilter("Mangueiras Industriais", "Ar e Água") esperava 2 itens, retornou ${airWaterResults.length}`,
+      `matchesHierarchyFilter("Mangueiras Industriais", "Ar e Água") esperava 4 itens (unificado com Jardim), retornou ${airWaterResults.length}`,
     )
   }
 
@@ -250,6 +255,24 @@ export function runCategoryNormalizationSelfCheck() {
     )
   ) {
     throw new Error('matchesSubcategoryFilter falhou para Ar e Água')
+  }
+  // Jardim também deve responder afirmativamente à subcategoria unificada "Ar e Água"
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO', category: 'MANGUEIRAS' },
+      'Ar e Água',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter("Ar e Água") falhou para mangueira Jardim unificada')
+  }
+  // Link legado ?sub=Jardim deve redirecionar/casar coerentemente com o conjunto unificado
+  if (
+    !matchesSubcategoryFilter(
+      { name: 'MANGUEIRA AR E AGUA 300 PSI', category: 'MANGUEIRAS' },
+      'Jardim',
+    )
+  ) {
+    throw new Error('matchesSubcategoryFilter("Jardim") legado falhou para Ar e Água')
   }
   if (
     !matchesSubcategoryFilter(
@@ -381,6 +404,29 @@ export function runCategoryNormalizationSelfCheck() {
         `Conflito de subcategorias: item "${item.name}" caiu em múltiplas subcategorias: ${matchedSubs.join(', ')}`,
       )
     }
+  }
+
+  // 15. Checagem direta de isAirAndWaterUnifiedProduct
+  if (!isAirAndWaterUnifiedProduct({ name: 'MANGUEIRA AR E AGUA 1/2" PT300 PRETA' })) {
+    throw new Error('isAirAndWaterUnifiedProduct falhou para Ar e Água puro')
+  }
+  if (!isAirAndWaterUnifiedProduct({ name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO' })) {
+    throw new Error('isAirAndWaterUnifiedProduct falhou para Jardim')
+  }
+  // Hidráulicas com menção a ar/água NUNCA entram em Ar e Água
+  if (
+    isAirAndWaterUnifiedProduct({
+      name: 'MANGUEIRA R6 1" MULTIPURPOSE AR E AGUA',
+      category: 'MANGUEIRA HIDRAULICA',
+    })
+  ) {
+    throw new Error('isAirAndWaterUnifiedProduct aceitou indevidamente produto Hidráulico R6')
+  }
+  // Sucção nunca entra em Ar e Água
+  if (
+    isAirAndWaterUnifiedProduct({ name: 'MANGUEIRA SUCÇÃO 2" LARANJA', category: 'MANGUEIRAS' })
+  ) {
+    throw new Error('isAirAndWaterUnifiedProduct aceitou indevidamente produto de Sucção')
   }
 
   return true

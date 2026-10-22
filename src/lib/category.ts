@@ -12,6 +12,7 @@
  */
 
 export const CANONICAL_HYDRAULIC_CATEGORY = 'Hidráulicas'
+export const CANONICAL_AIR_AND_WATER_SUBCATEGORY = 'Ar e Água'
 export const CANONICAL_SUCTION_DISCHARGE_SUBCATEGORY = 'Sucção e Descarga'
 
 /**
@@ -201,10 +202,30 @@ export function matchesCategoryFilter(
 }
 
 /**
- * Checa se um produto atende ao filtro de subcategoria (usado especialmente no menu lateral).
+ * Determina se um item pertence à subcategoria unificada "Ar e Água"
+ * (agrupa produtos de Ar e Água + produtos de Jardim, com exclusão estrita de Hidráulicas).
+ */
+export function isAirAndWaterUnifiedProduct(item: {
+  name?: string | null
+  category?: string | null
+}): boolean {
+  if (!item) return false
+
+  // 1. Precedência estrita: Hidráulicas nunca entram
+  if (isHydraulicProduct(item)) {
+    return false
+  }
+
+  // 2. União de produtos "Ar e Água" ou produtos "Jardim"
+  return isAirAndWaterProduct(item) || isGardenProduct(item)
+}
+
+/**
+ * Checa se um produto atende ao filtro de subcategoria (usado no menu lateral, dropdown da home e URL).
  * Quando a subcategoria é "Hidráulicas", retorna todos os produtos hidráulicos
  * (categoria crua "MANGUEIRA HIDRAULICA" OU nome com série R / modelo hidráulico).
- * Quando a subcategoria é "Ar e Água", retorna produtos com "AR E AGUA" no nome.
+ * Quando a subcategoria é "Ar e Água" (ou legacy "Jardim"), retorna o conjunto unificado
+ * (produtos de Ar e Água + produtos de Jardim).
  * Quando a subcategoria é "Sucção e Descarga", retorna produtos com "SUCÇÃO" ou "VÁCUO AR" no nome.
  */
 export function matchesSubcategoryFilter(
@@ -220,11 +241,10 @@ export function matchesSubcategoryFilter(
     return isHydraulicProduct(item)
   }
 
-  if (normSub === 'ar e agua') {
-    if (isHydraulicProduct(item)) {
-      return false
-    }
-    return isAirAndWaterProduct(item)
+  // "Ar e Água" agrupa unificadamente Ar e Água + Jardim.
+  // Também redireciona/trata links legados com "jardim" de forma coerente para o mesmo conjunto.
+  if (normSub === 'ar e agua' || normSub === 'jardim') {
+    return isAirAndWaterUnifiedProduct(item)
   }
 
   if (
@@ -260,6 +280,10 @@ export function matchesHierarchyFilter(
     // Se a subcategoria for Hidráulicas, ela comanda o filtro hidráulico canônico integralmente
     if (normSub === 'hidraulicas' || normSub === 'hidraulica') {
       return isHydraulicProduct(item)
+    }
+    // Se a subcategoria for "Ar e Água" (ou legada "Jardim"), comanda o conjunto unificado
+    if (normSub === 'ar e agua' || normSub === 'jardim') {
+      return isAirAndWaterUnifiedProduct(item)
     }
     // Para as demais subcategorias, verifica a subcategoria
     if (!matchesSubcategoryFilter(item, subcategoryParam)) {

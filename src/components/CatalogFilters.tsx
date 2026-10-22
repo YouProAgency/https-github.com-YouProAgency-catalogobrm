@@ -41,6 +41,7 @@ interface CatalogFiltersProps {
   availableCategories: CategoryOption[]
   selectedSubcategory?: string | null
   onSubcategoryChange?: (value: string) => void
+  onClearCategoryHierarchy?: () => void
   totalResults: number
   totalCatalog: number
   onClearFilters: () => void
@@ -61,6 +62,7 @@ export function CatalogFilters({
   availableCategories,
   selectedSubcategory,
   onSubcategoryChange,
+  onClearCategoryHierarchy,
   totalResults,
   totalCatalog,
   onClearFilters,
@@ -327,40 +329,59 @@ export function CatalogFilters({
               </Badge>
             )}
 
+            {/* Se houver categoria selecionada com ou sem subcategoria */}
             {selectedCategory && selectedCategory !== 'all' && (
               <Badge
                 variant="secondary"
                 className="bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs gap-1.5 pl-2.5 pr-1.5 py-1"
               >
                 <span>
-                  Categoria: {selectedCategory}
-                  {selectedSubcategory ? ` > ${selectedSubcategory}` : ''}
+                  {selectedSubcategory
+                    ? `${selectedCategory} > ${selectedSubcategory}`
+                    : `Categoria: ${selectedCategory}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => {
-                    onCategoryChange('all')
-                    if (onSubcategoryChange) onSubcategoryChange('')
+                    if (onClearCategoryHierarchy) {
+                      onClearCategoryHierarchy()
+                    } else {
+                      onCategoryChange('all')
+                      if (onSubcategoryChange) onSubcategoryChange('')
+                    }
                   }}
                   className="hover:text-destructive p-0.5"
+                  title="Remover filtro de categoria"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
 
+            {/* Se houver subcategoria selecionada sem categoria pai */}
             {selectedSubcategory && (!selectedCategory || selectedCategory === 'all') && (
               <Badge
                 variant="secondary"
                 className="bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs gap-1.5 pl-2.5 pr-1.5 py-1"
               >
-                <span>Subcategoria: {selectedSubcategory}</span>
+                <span>
+                  {selectedSubcategory === 'Ar e Água' ||
+                  selectedSubcategory === 'Hidráulicas' ||
+                  selectedSubcategory === 'Sucção e Descarga'
+                    ? `Mangueiras Industriais > ${selectedSubcategory}`
+                    : `Subcategoria: ${selectedSubcategory}`}
+                </span>
                 <button
                   type="button"
                   onClick={() => {
-                    if (onSubcategoryChange) onSubcategoryChange('')
+                    if (onClearCategoryHierarchy) {
+                      onClearCategoryHierarchy()
+                    } else if (onSubcategoryChange) {
+                      onSubcategoryChange('')
+                    }
                   }}
                   className="hover:text-destructive p-0.5"
+                  title="Remover filtro de subcategoria"
                 >
                   <X className="h-3 w-3" />
                 </button>
