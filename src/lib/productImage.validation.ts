@@ -58,7 +58,9 @@ import {
   isChuveiro,
   isKoraxR6Multiuso,
   isJardimVinhoPreto,
+  isJardimAzulPreto,
   JARDIM_VINHO_PRETO_IMAGE,
+  JARDIM_AZUL_PRETO_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -4651,6 +4653,13 @@ export function runProductImageSelfCheck(): boolean {
       brand: 'KORAX',
       expectedImg: KORAX_R6_MULTIUSO_IMAGE,
     },
+    // 32. Mangueira Jardim Vinho/Preto (SKU 2510)
+    {
+      sku: '2510',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO/ PRETO',
+      brand: 'SUNFLEX',
+      expectedImg: JARDIM_VINHO_PRETO_IMAGE,
+    },
   ]
 
   for (const item of nonRegressionLines) {
@@ -4659,15 +4668,20 @@ export function runProductImageSelfCheck(): boolean {
         `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isKoraxR6Multiuso`,
       )
     }
-    if (isJardimVinhoPreto(item)) {
+    if (isJardimVinhoPreto(item) && item.expectedImg !== JARDIM_VINHO_PRETO_IMAGE) {
       throw new Error(
         `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isJardimVinhoPreto`,
       )
     }
-    const detectedImg = getProductImage(item)
-    if (detectedImg === JARDIM_VINHO_PRETO_IMAGE) {
+    if (isJardimAzulPreto(item)) {
       throw new Error(
-        `Linha prévia ${item.sku} (${item.name}) NÃO deve retornar JARDIM_VINHO_PRETO_IMAGE`,
+        `Linha prévia ${item.sku} (${item.name}) NÃO deveria casar com isJardimAzulPreto`,
+      )
+    }
+    const detectedImg = getProductImage(item)
+    if (detectedImg === JARDIM_AZUL_PRETO_IMAGE) {
+      throw new Error(
+        `Linha prévia ${item.sku} (${item.name}) NÃO deve retornar JARDIM_AZUL_PRETO_IMAGE`,
       )
     }
     if (detectedImg !== item.expectedImg) {
@@ -4852,6 +4866,226 @@ export function runProductImageSelfCheck(): boolean {
     if (getProductImage(item) === JARDIM_VINHO_PRETO_IMAGE) {
       throw new Error(
         `Item negativo ${item.sku} (${item.name}) NÃO deve retornar JARDIM_VINHO_PRETO_IMAGE`,
+      )
+    }
+  }
+
+  // --- Validação da Linha Mangueira Jardim Azul/Preto (33ª regra fotografada) ---
+  // 1. Casos POSITIVOS:
+  // - SKU 2554 — "MANGUEIRA JARDIM 1/2\" X 2.5MM PT200 AZUL/PRETO"
+  // - SKU 8379 — "MANGUEIRA JARDIM 3/4\" X 2.5MM PT200 AZUL/PRETO"
+  // - Variações com minúsculas, hífen, acentuação, espaços ao redor da barra
+  const jardimAzulPretoPositiveCases = [
+    {
+      sku: '2554',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+      category: 'MANGUEIRAS',
+    },
+    {
+      sku: '8379',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+      category: 'MANGUEIRAS',
+    },
+    // Variações com e sem espaço ao redor da barra ("AZUL/ PRETO", "AZUL / PRETO")
+    {
+      sku: '2554-space-after',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/ PRETO',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '8379-spaces-both',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL / PRETO',
+      brand: 'SUNFLEX',
+    },
+    // Variações de caixa baixa, hífen e conjunção
+    {
+      sku: '2554-lower',
+      name: 'mangueira jardim 1/2" x 2.5mm pt200 azul/preto',
+      brand: 'sunflex',
+    },
+    {
+      sku: '2554-hyphen',
+      name: 'MANGUEIRA JARDIM AZUL-PRETO 1/2"',
+      brand: 'SUNFLEX',
+    },
+    {
+      sku: '2554-words',
+      name: 'MANGUEIRA JARDIM AZUL E PRETO 1/2"',
+      brand: 'SUNFLEX',
+    },
+  ]
+
+  for (const item of jardimAzulPretoPositiveCases) {
+    if (!isJardimAzulPreto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isJardimAzulPreto`)
+    }
+    // Não pode casar com isJardimVinhoPreto
+    if (isJardimVinhoPreto(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) NÃO deveria casar com isJardimVinhoPreto`)
+    }
+    if (getProductImage(item) !== JARDIM_AZUL_PRETO_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou JARDIM_AZUL_PRETO_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== JARDIM_AZUL_PRETO_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [JARDIM_AZUL_PRETO_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada no banco sobre JARDIM_AZUL_PRETO_IMAGE
+  const customImgJardimAzulPreto = {
+    sku: '2554',
+    name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO',
+    brand: 'SUNFLEX',
+    image: 'https://exemplo.com/foto-custom-jardim-azul.jpg',
+  }
+  if (
+    getProductImage(customImgJardimAzulPreto) !== 'https://exemplo.com/foto-custom-jardim-azul.jpg'
+  ) {
+    throw new Error(
+      'Imagem própria do produto (image) deve ter precedência sobre JARDIM_AZUL_PRETO_IMAGE',
+    )
+  }
+
+  const customGalleryJardimAzulPreto = {
+    sku: '8379',
+    name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL/PRETO',
+    brand: 'SUNFLEX',
+    images: [
+      'https://exemplo.com/galeria-jardim-azul-1.jpg',
+      'https://exemplo.com/galeria-jardim-azul-2.jpg',
+    ],
+  }
+  const customGalleryAzulRes = getProductImages(customGalleryJardimAzulPreto)
+  if (
+    customGalleryAzulRes.length !== 2 ||
+    customGalleryAzulRes[0] !== 'https://exemplo.com/galeria-jardim-azul-1.jpg'
+  ) {
+    throw new Error('Galeria própria de imagens deve ter precedência sobre JARDIM_AZUL_PRETO_IMAGE')
+  }
+
+  // 2. Casos NEGATIVOS OBRIGATÓRIOS para Jardim Azul/Preto:
+  // - SKU 2497 "MANGUEIRA JARDIM 1/2\" X 3,0MM PT300 AZUL LISA" — azul puro, SEM "/preto", NÃO recebe a foto
+  // - SKU 2862 (vinho tricotada puro), SKU 2510 e 3954 (vinho/preto seguem com a foto da 0.0.83)
+  // - Lisa Irrigação azul (SKU 813) e sucção azul (ISAL/KKM) não podem casar
+  // - Demais cores de jardim (amarela, verde, laranja, preta lisa)
+  const jardimAzulPretoNegativeCases = [
+    // Obrigatório: SKU 2497 (azul puro sem preto)
+    {
+      sku: '2497',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    // SKU 2862 (vinho puro)
+    {
+      sku: '2862',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO TRICOTADA',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    // SKU 2510 e 3954 (vinho/preto mantêm foto vinho/preto)
+    {
+      sku: '2510',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO/ PRETO',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: JARDIM_VINHO_PRETO_IMAGE,
+    },
+    {
+      sku: '3954',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO/PRETO',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: JARDIM_VINHO_PRETO_IMAGE,
+    },
+    // SKU 813: Lisa Irrigação azul / Lisa irrigação em geral
+    {
+      sku: '813',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 2" PAREDE 3,0 MM',
+      brand: '',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: LISA_IRRIGACAO_IMAGE,
+    },
+    {
+      sku: '813-azul',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 2" AZUL',
+      brand: '',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: LISA_IRRIGACAO_IMAGE,
+    },
+    // Sucção azul (ISAL, KKM, KEV)
+    {
+      sku: 'succao-isal-azul',
+      name: 'MANGUEIRA SUCÇÃO 2" ISAL AZUL',
+      brand: 'KANAFLEX',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: 'succao-kkm-azul',
+      name: 'MANGUEIRA SUCÇÃO 3" KKM AZUL',
+      brand: 'KANAFLEX',
+      expectedNotAzulPreto: true,
+      expectedOtherImg: SUCCAO_AZUL_IMAGE,
+    },
+    // Demais jardins:
+    {
+      sku: '9900',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AMARELA',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    {
+      sku: '3075',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 LARANJA/ROSA',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    {
+      sku: '4926',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VERDE FOSCO',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    {
+      sku: '5422',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VERDE/PRETO',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    {
+      sku: '790',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 PRETA LISA',
+      brand: 'SUNFLEX',
+      expectedNotAzulPreto: true,
+    },
+    // Casos sem "JARDIM": mangueiras ar e água ou outras com azul e preto
+    {
+      sku: 'neg-azul-preto-sem-jardim',
+      name: 'MANGUEIRA AR E AGUA AZUL E PRETO 1/2"',
+      brand: 'IBIRA',
+      expectedNotAzulPreto: true,
+    },
+  ]
+
+  for (const item of jardimAzulPretoNegativeCases) {
+    if (isJardimAzulPreto(item)) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) NÃO deveria casar com isJardimAzulPreto`,
+      )
+    }
+    const detectedImg = getProductImage(item)
+    if (detectedImg === JARDIM_AZUL_PRETO_IMAGE) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) NÃO deve retornar JARDIM_AZUL_PRETO_IMAGE`,
+      )
+    }
+    if (item.expectedOtherImg && detectedImg !== item.expectedOtherImg) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) deveria manter ${item.expectedOtherImg}, obteve ${detectedImg}`,
       )
     }
   }

@@ -29,6 +29,7 @@ import limpadorParabrisaImg from '@/assets/limpador-parabrisa'
 import chuveiroImg from '@/assets/chuveiro'
 import koraxR6MultiusoImg from '@/assets/korax-r6-multiuso'
 import jardimVinhoPretoImg from '@/assets/jardim-vinho-preto'
+import jardimAzulPretoImg from '@/assets/jardim-azul-preto'
 import { normalizeBrandKey } from './brand'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -64,6 +65,7 @@ export const LIMPADOR_PARABRISA_IMAGE = limpadorParabrisaImg
 export const CHUVEIRO_IMAGE = chuveiroImg
 export const KORAX_R6_MULTIUSO_IMAGE = koraxR6MultiusoImg
 export const JARDIM_VINHO_PRETO_IMAGE = jardimVinhoPretoImg
+export const JARDIM_AZUL_PRETO_IMAGE = jardimAzulPretoImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -849,6 +851,28 @@ export function isJardimVinhoPreto(product: ProductImageSubject | null | undefin
 }
 
 /**
+ * Checa se o produto pertence à linha "MANGUEIRA JARDIM AZUL/PRETO".
+ * Regra: exige SIMULTANEAMENTE as palavras isoladas "JARDIM", "AZUL" E "PRETO"
+ * no texto consolidado do produto (nome + descrições), tolerante a acentuação,
+ * maiúsculas/minúsculas, hífen e variações de espaçamento ao redor da barra ("AZUL/PRETO", "AZUL/ PRETO", "AZUL / PRETO").
+ * Exclusivamente para produtos que combinam Jardim + Azul + Preto; produtos como
+ * "JARDIM AZUL LISA" (sem preto) ou Sucção/Irrigação azul NÃO casam.
+ */
+export function isJardimAzulPreto(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  const hasJardim = /\bjardim\b/i.test(text)
+  const hasAzul = /\bazul\b/i.test(text)
+  const hasPreto = /\bpreto\b/i.test(text)
+
+  return hasJardim && hasAzul && hasPreto
+}
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -883,7 +907,8 @@ export function isJardimVinhoPreto(product: ProductImageSubject | null | undefin
  * 30. Se for da linha Chuveiro, retorna a imagem oficial anexada (CHUVEIRO_IMAGE)
  * 31. Se for da linha Korax R6 Multiuso, retorna a imagem oficial anexada (KORAX_R6_MULTIUSO_IMAGE)
  * 32. Se for da linha Mangueira Jardim Vinho/Preto, retorna a imagem oficial anexada (JARDIM_VINHO_PRETO_IMAGE)
- * 33. Fallback: placeholder genérico de produto
+ * 33. Se for da linha Mangueira Jardim Azul/Preto, retorna a imagem oficial anexada (JARDIM_AZUL_PRETO_IMAGE)
+ * 34. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -1031,6 +1056,10 @@ export function getProductImage(
     return JARDIM_VINHO_PRETO_IMAGE
   }
 
+  if (isJardimAzulPreto(product)) {
+    return JARDIM_AZUL_PRETO_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -1074,6 +1103,7 @@ export function getProductImage(
  * - Se for Chuveiro, retorna [CHUVEIRO_IMAGE].
  * - Se for Korax R6 Multiuso, retorna [KORAX_R6_MULTIUSO_IMAGE].
  * - Se for Mangueira Jardim Vinho/Preto, retorna [JARDIM_VINHO_PRETO_IMAGE].
+ * - Se for Mangueira Jardim Azul/Preto, retorna [JARDIM_AZUL_PRETO_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1220,6 +1250,10 @@ export function getProductImages(
 
   if (isJardimVinhoPreto(product)) {
     return [JARDIM_VINHO_PRETO_IMAGE]
+  }
+
+  if (isJardimAzulPreto(product)) {
+    return [JARDIM_AZUL_PRETO_IMAGE]
   }
 
   return [fallbackUrl]
