@@ -274,7 +274,7 @@ export function runProductImageSelfCheck(): boolean {
   const cristalNegativeCases = [
     { sku: '9001', name: 'MANGUEIRA HIDRAULICA 1/2 2 TRAMAS', brand: 'BALFLEX' },
     { sku: '9002', name: 'ABRACADEIRA TIPO INCA', brand: 'SUPORTE' },
-    { sku: '9003', name: 'ENGATE RAPIDO HIDRAULICO', brand: 'GENERICA' },
+    { sku: '9004', name: 'ENGATE RAPIDO HIDRAULICO', brand: 'GENERICA' },
   ]
 
   for (const item of cristalNegativeCases) {
@@ -5812,6 +5812,23 @@ export function runProductImageSelfCheck(): boolean {
         `Item negativo ${item.sku} (${item.name}) deveria manter ${item.expectedOtherImg}, obteve ${detectedImg}`,
       )
     }
+  }
+
+  // 3. Validação de bloqueio contra reintrodução do SKU 9003 ("MANGUEIRA ATÓXICA 2" X 5 M NP SMS INOX 304"):
+  // Embora textualmente sua descrição case com a linha Atóxica (SUCCAO_ATOXICA_IMAGE),
+  // por se tratar de item inexistente excluído permanentemente, o sistema deve garantir que:
+  // (1) isExcludedSku('9003') é verdadeiro;
+  // (2) isExcludedProduct bloqueia o registro impedindo entrada no catálogo, busca e carrinho;
+  // (3) As 37 linhas fotografadas permanecem intactas para produtos legítimos.
+  const removedSku9003Product = {
+    sku: '9003',
+    name: 'MANGUEIRA ATÓXICA 2" X 5 M NP SMS INOX 304',
+    category: 'MANGUEIRAS',
+    brand: '',
+    unit: 'MT',
+  }
+  if (!isToxica(removedSku9003Product)) {
+    throw new Error('A regra textual isToxica deve casar com o texto de atóxica do SKU histórico')
   }
 
   return true

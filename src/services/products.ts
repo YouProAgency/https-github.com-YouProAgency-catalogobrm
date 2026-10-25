@@ -63,9 +63,10 @@ export function sanitizeProductUnit(
  * - SKU 2713 ("mangueira 1 supersteam 270PSI W.P 2700PSI B.P Vermelha")
  * - SKU 1637 ("MANGUEIRA R2 2\" 80 BAR / 1160 PSI")
  * - SKU 4523 ("MANGUEIRA SAIDA 1,27M TANQUINHO")
+ * - SKU 9003 ("MANGUEIRA ATÓXICA 2\" X 5 M NP SMS INOX 304")
  * Foram removidos por solicitação de negócio e não devem reaparecer nem por reimportação.
  */
-export const EXCLUDED_SKUS: ReadonlySet<string> = new Set(['2713', '1637', '4523'])
+export const EXCLUDED_SKUS: ReadonlySet<string> = new Set(['2713', '1637', '4523', '9003'])
 
 /**
  * Verifica se um SKU específico está na lista de exclusão permanente.
@@ -104,7 +105,7 @@ export function isConformeAmostra(item: {
 
 /**
  * Checagem abrangente se o produto deve ser excluído do catálogo público:
- * - SKUs bloqueados permanentemente (ex.: SKU 2713, SKU 1637, SKU 4523)
+ * - SKUs bloqueados permanentemente (ex.: SKU 2713, SKU 1637, SKU 4523, SKU 9003)
  * - Produtos "conforme amostra"
  * - Mangueiras da marca "Eletrodiesel"
  */
@@ -331,7 +332,7 @@ export async function upsertProductBatch(
 
   let totalRetriedBatches = 0
 
-  // Defensivamente filtra itens excluídos (SKUs bloqueados como 2713, 1637 e 4523, "conforme amostra" ou marca "Eletrodiesel") que possam ter sido passados
+  // Defensivamente filtra itens excluídos (SKUs bloqueados como 2713, 1637, 4523 e 9003, "conforme amostra" ou marca "Eletrodiesel") que possam ter sido passados
   const sanitizedProducts = products.filter((row) => {
     if (isExcludedProduct({ sku: row.sku, name: row.name, unit: row.unit, brand: row.brand })) {
       result.skippedCount++

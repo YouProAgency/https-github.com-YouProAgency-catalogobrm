@@ -25,6 +25,14 @@ export function runExcludedProductsSelfCheck() {
     throw new Error('isExcludedSku deve tolerar espaços em branco para o SKU 4523')
   }
 
+  // 2.2 SKU 9003 (Mangueira Atóxica 2" SMS INOX 304 inexistente) deve ser expressamente excluído
+  if (!isExcludedSku('9003')) {
+    throw new Error('isExcludedSku deve retornar true para o SKU 9003')
+  }
+  if (!isExcludedSku(' 9003 ')) {
+    throw new Error('isExcludedSku deve tolerar espaços em branco para o SKU 9003')
+  }
+
   // 3. Outros produtos da linha R2 não podem ser afetados
   const validR2Skus = [
     '9197',
@@ -93,6 +101,53 @@ export function runExcludedProductsSelfCheck() {
   }
   if (!isExcludedProduct(product4523)) {
     throw new Error('isExcludedProduct deve retornar true para o produto SKU 4523')
+  }
+
+  // 7.1 isExcludedProduct deve bloquear o produto SKU 9003 completo
+  const product9003 = {
+    sku: '9003',
+    name: 'MANGUEIRA ATÓXICA 2" X 5 M NP SMS INOX 304',
+    category: 'MANGUEIRAS',
+    brand: '',
+    unit: 'MT',
+  }
+  if (!isExcludedProduct(product9003)) {
+    throw new Error('isExcludedProduct deve retornar true para o produto SKU 9003')
+  }
+
+  // 7.2 Produtos irmãos legítimos da linha Mangueira Atóxica (8449, 8448, 8679, 7815, 3802, etc.) NÃO devem ser afetados
+  const validAtoxicaSkus = [
+    '8449',
+    '8448',
+    '8679',
+    '7815',
+    '3802',
+    '6591',
+    '6592',
+    '6593',
+    '6572',
+    '6573',
+    '6574',
+    '427',
+  ]
+  for (const sku of validAtoxicaSkus) {
+    if (isExcludedSku(sku)) {
+      throw new Error(
+        `isExcludedSku retornou true indevidamente para o SKU legítimo Atóxica ${sku}`,
+      )
+    }
+    const item = {
+      sku,
+      name: `MANGUEIRA SUCÇAO ${sku} ISAM ATOXICA ARAME METAL`,
+      category: 'MANGUEIRAS',
+      brand: 'IBIRÁ',
+      unit: 'MT',
+    }
+    if (isExcludedProduct(item)) {
+      throw new Error(
+        `isExcludedProduct retornou true indevidamente para o produto legítimo Atóxica ${sku}`,
+      )
+    }
   }
 
   // 8. Produtos irmãos de Saída Drenagem (8885-8893) e Saída Corrugada Branca (8894-8895) NÃO devem ser afetados
