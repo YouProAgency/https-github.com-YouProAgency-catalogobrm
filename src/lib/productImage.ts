@@ -31,6 +31,7 @@ import koraxR6MultiusoImg from '@/assets/korax-r6-multiuso'
 import jardimVinhoPretoImg from '@/assets/jardim-vinho-preto'
 import jardimAzulPretoImg from '@/assets/jardim-azul-preto'
 import jardimAzulLisaImg from '@/assets/jardim-azul-lisa'
+import succaoAtoxicaImg from '@/assets/succao-atoxica'
 import { normalizeBrandKey } from './brand'
 
 export const DEFAULT_PRODUCT_PLACEHOLDER =
@@ -68,6 +69,8 @@ export const KORAX_R6_MULTIUSO_IMAGE = koraxR6MultiusoImg
 export const JARDIM_VINHO_PRETO_IMAGE = jardimVinhoPretoImg
 export const JARDIM_AZUL_PRETO_IMAGE = jardimAzulPretoImg
 export const JARDIM_AZUL_LISA_IMAGE = jardimAzulLisaImg
+export const SUCCAO_ATOXICA_IMAGE = succaoAtoxicaImg
+export const ATOXICA_IMAGE = succaoAtoxicaImg
 
 // Validação em desenvolvimento/build para regras de imagem e SKUs Kobra 1 / Kobra 2
 if (import.meta.env.DEV) {
@@ -896,6 +899,27 @@ export function isJardimAzulLisa(product: ProductImageSubject | null | undefined
 }
 
 /**
+ * Checa se o produto pertence à linha "Mangueira Atóxica" / "Sucção Atóxica".
+ * Regra: casa quando o texto consolidado do produto (nome + descrições, normalizado sem acentos/caixa)
+ * contém a palavra inteira "ATOXICA" (tolerante a acento — "atóxica"/"atoxica", maiúsculas/minúsculas, hífen).
+ * Sem restrição de marca (cobre Ibirá, Kanaflex e produtos sem marca).
+ */
+export function isToxica(product: ProductImageSubject | null | undefined): boolean {
+  if (!product) return false
+
+  const text = getSubjectCombinedText(product)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  return /\batoxica\b/i.test(text)
+}
+
+/**
+ * Alias exportado para facilidade de importação / compatibilidade.
+ */
+export const isAtoxica = isToxica
+
+/**
  * Retorna a imagem mais apropriada para exibição do produto:
  * 1. Imagem própria do produto (se já cadastrada no PocketBase ou na lista de images)
  * 2. Se for da linha Balflex Forza Uno Tropic, retorna BALFLEX_FORZA_UNO_TROPIC_IMAGE (precedência sobre Forza Uno genérica)
@@ -932,7 +956,8 @@ export function isJardimAzulLisa(product: ProductImageSubject | null | undefined
  * 32. Se for da linha Mangueira Jardim Vinho/Preto, retorna a imagem oficial anexada (JARDIM_VINHO_PRETO_IMAGE)
  * 33. Se for da linha Mangueira Jardim Azul/Preto, retorna a imagem oficial anexada (JARDIM_AZUL_PRETO_IMAGE)
  * 34. Se for da linha Mangueira Jardim Azul/Lisa, retorna a imagem oficial anexada (JARDIM_AZUL_LISA_IMAGE)
- * 35. Fallback: placeholder genérico de produto
+ * 35. Se for da linha Mangueira Atóxica, retorna a imagem oficial anexada (SUCCAO_ATOXICA_IMAGE)
+ * 36. Fallback: placeholder genérico de produto
  */
 export function getProductImage(
   product: ProductImageSubject | null | undefined,
@@ -1088,6 +1113,10 @@ export function getProductImage(
     return JARDIM_AZUL_LISA_IMAGE
   }
 
+  if (isToxica(product)) {
+    return SUCCAO_ATOXICA_IMAGE
+  }
+
   // Se o candidato for uma imagem válida (inclusive placeholder customizado se fornecido)
   if (candidate) {
     return candidate
@@ -1133,6 +1162,7 @@ export function getProductImage(
  * - Se for Mangueira Jardim Vinho/Preto, retorna [JARDIM_VINHO_PRETO_IMAGE].
  * - Se for Mangueira Jardim Azul/Preto, retorna [JARDIM_AZUL_PRETO_IMAGE].
  * - Se for Mangueira Jardim Azul/Lisa, retorna [JARDIM_AZUL_LISA_IMAGE].
+ * - Se for Mangueira Atóxica, retorna [SUCCAO_ATOXICA_IMAGE].
  * - Caso contrário, retorna [fallbackUrl].
  */
 export function getProductImages(
@@ -1287,6 +1317,10 @@ export function getProductImages(
 
   if (isJardimAzulLisa(product)) {
     return [JARDIM_AZUL_LISA_IMAGE]
+  }
+
+  if (isToxica(product)) {
+    return [SUCCAO_ATOXICA_IMAGE]
   }
 
   return [fallbackUrl]

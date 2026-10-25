@@ -60,9 +60,11 @@ import {
   isJardimVinhoPreto,
   isJardimAzulPreto,
   isJardimAzulLisa,
+  isToxica,
   JARDIM_VINHO_PRETO_IMAGE,
   JARDIM_AZUL_PRETO_IMAGE,
   JARDIM_AZUL_LISA_IMAGE,
+  SUCCAO_ATOXICA_IMAGE,
   DEFAULT_PRODUCT_PLACEHOLDER,
 } from './productImage'
 /**
@@ -5518,23 +5520,296 @@ export function runProductImageSelfCheck(): boolean {
       brand: 'SUNFLEX',
       expectedImg: JARDIM_AZUL_PRETO_IMAGE,
     },
+    {
+      sku: 'all-34',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA',
+      brand: 'SUNFLEX',
+      expectedImg: JARDIM_AZUL_LISA_IMAGE,
+    },
   ]
 
   for (const item of todasLinhasFotografadasNominal) {
-    if (isJardimAzulLisa(item)) {
+    if (isJardimAzulLisa(item) && item.sku !== 'all-34') {
       throw new Error(
         `Linha prévia nominal ${item.sku} (${item.name}) NÃO deve casar com isJardimAzulLisa`,
       )
     }
+    if (isToxica(item)) {
+      throw new Error(`Linha prévia nominal ${item.sku} (${item.name}) NÃO deve casar com isToxica`)
+    }
     const detectedImg = getProductImage(item)
-    if (detectedImg === JARDIM_AZUL_LISA_IMAGE) {
+    if (detectedImg === SUCCAO_ATOXICA_IMAGE) {
       throw new Error(
-        `Linha prévia nominal ${item.sku} (${item.name}) NÃO deve receber JARDIM_AZUL_LISA_IMAGE`,
+        `Linha prévia nominal ${item.sku} (${item.name}) NÃO deve receber SUCCAO_ATOXICA_IMAGE`,
       )
     }
     if (detectedImg !== item.expectedImg) {
       throw new Error(
         `Regressão na linha nominal ${item.sku} (${item.name}): esperava ${item.expectedImg}, obteve ${detectedImg}`,
+      )
+    }
+  }
+
+  // --- Validação da Linha Mangueira Atóxica (35ª regra / 36ª linha fotografada) ---
+  // 1. Casos POSITIVOS:
+  // - SKUs confirmados no banco (19 produtos):
+  //   IBIRÁ: 9204, 3802, 8449, 8679, 8448, 7815
+  //   KANAFLEX: 6405, 6207, 6407, 8675
+  //   Sem marca: 6135, 9187, 6591, 6592, 6593, 6572, 6573, 6574, 427
+  // - Variações de caixa alta/baixa, com e sem acento ("atóxica" / "atoxica")
+  const atoxicaPositiveCases = [
+    // IBIRÁ
+    { sku: '9204', name: 'MANGUEIRA SUCÇAO 5/8" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '3802', name: 'MANGUEIRA SUCÇAO 3/4" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '8449', name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '8679', name: 'MANGUEIRA SUCÇAO 1.1/4" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '8448', name: 'MANGUEIRA SUCÇAO 1.1/2" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    { sku: '7815', name: 'MANGUEIRA SUCÇAO 2" ISAM ATOXICA ARAME METAL', brand: 'IBIRÁ' },
+    // KANAFLEX
+    { sku: '6405', name: 'MANGUEIRA 1" KA-L ATOXICA', brand: 'KANAFLEX' },
+    { sku: '6207', name: 'MANGUEIRA FLEXIVEL 1.1/2" KAT ATOXICA', brand: 'KANAFLEX' },
+    { sku: '6407', name: 'MANGUEIRA CRISTAL 1/2" PVC PT250 ATOXICA', brand: 'KANAFLEX' },
+    {
+      sku: '8675',
+      name: 'MANGUEIRA SUCÇAO 1" KA ATOXICA TRANSPARENTE ESPIRAL BRANCO',
+      brand: 'KANAFLEX',
+    },
+    // Sem marca
+    { sku: '6135', name: 'MANGUEIRA 5/16" TRANÇADA ATOXICA', brand: '' },
+    { sku: '9187', name: 'MANGUEIRA 5/8" ATOXICA TRANSPARENTE COM ESPIRAL DE ARAME', brand: '' },
+    { sku: '6591', name: 'MANGUEIRA ATOXICA 1" COM FIO DE AÇO', brand: '' },
+    { sku: '6592', name: 'MANGUEIRA ATOXICA 1.1/2" COM FIO DE AÇO', brand: '' },
+    { sku: '6593', name: 'MANGUEIRA ATOXICA 2" COM FIO DE AÇO', brand: '' },
+    { sku: '6572', name: 'MANGUEIRA ATOXICA 1" TRANSPARENTE C/ ESPIRAL', brand: '' },
+    { sku: '6573', name: 'MANGUEIRA ATOXICA 1.1/2" TRANSPARENTE C/ ESPIRAL', brand: '' },
+    { sku: '6574', name: 'MANGUEIRA ATOXICA 2" TRANSPARENTE C/ ESPIRAL', brand: '' },
+    { sku: '427', name: 'MANGUEIRA ATOXICA 1.1/4" TRANSPARENTE C/ ESPIRAL', brand: '' },
+    // Variações textuais: acento, caixa, hífen, descrição
+    { sku: 'pos-atoxica-acento', name: 'MANGUEIRA SUCÇÃO 1" ATÓXICA ARAME', brand: 'IBIRÁ' },
+    { sku: 'pos-atoxica-lower', name: 'mangueira sucção 2" atoxica arame metal', brand: 'ibirá' },
+    { sku: 'pos-atoxica-mixed', name: 'Mangueira Atóxica 1.1/2" Arame de Aço', brand: 'Kanaflex' },
+    {
+      sku: 'pos-atoxica-desc',
+      name: 'MANGUEIRA DE SUCÇÃO 2"',
+      description: 'Produto atóxica grau alimentício',
+      brand: '',
+    },
+  ]
+
+  for (const item of atoxicaPositiveCases) {
+    if (!isToxica(item)) {
+      throw new Error(`Item ${item.sku} (${item.name}) deveria casar com isToxica`)
+    }
+    if (getProductImage(item) !== SUCCAO_ATOXICA_IMAGE) {
+      throw new Error(`Item ${item.sku} (${item.name}) não retornou SUCCAO_ATOXICA_IMAGE`)
+    }
+    const imgs = getProductImages(item)
+    if (imgs.length !== 1 || imgs[0] !== SUCCAO_ATOXICA_IMAGE) {
+      throw new Error(`Item ${item.sku} galeria não retornou [SUCCAO_ATOXICA_IMAGE]`)
+    }
+  }
+
+  // Precedência de imagem própria cadastrada no banco sobre SUCCAO_ATOXICA_IMAGE
+  const customImgAtoxica = {
+    sku: '8449',
+    name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL',
+    brand: 'IBIRÁ',
+    image: 'https://exemplo.com/foto-custom-atoxica.jpg',
+  }
+  if (getProductImage(customImgAtoxica) !== 'https://exemplo.com/foto-custom-atoxica.jpg') {
+    throw new Error(
+      'Imagem própria do produto (image) deve ter precedência sobre SUCCAO_ATOXICA_IMAGE',
+    )
+  }
+
+  const customGalleryAtoxica = {
+    sku: '8449',
+    name: 'MANGUEIRA SUCÇAO 1" ISAM ATOXICA ARAME METAL',
+    brand: 'IBIRÁ',
+    images: [
+      'https://exemplo.com/galeria-atoxica-1.jpg',
+      'https://exemplo.com/galeria-atoxica-2.jpg',
+    ],
+  }
+  const customGalleryAtoxicaRes = getProductImages(customGalleryAtoxica)
+  if (
+    customGalleryAtoxicaRes.length !== 2 ||
+    customGalleryAtoxicaRes[0] !== 'https://exemplo.com/galeria-atoxica-1.jpg'
+  ) {
+    throw new Error('Galeria própria de imagens deve ter precedência sobre SUCCAO_ATOXICA_IMAGE')
+  }
+
+  // 2. Casos NEGATIVOS OBRIGATÓRIOS para isToxica:
+  // - Palavras parecidas que NÃO são "atóxica" inteira (ex: "toxica", "intoxicante", etc.)
+  // - Produtos de sucção laranja, cinza, azul, preta SEM "atóxica"
+  // - Silicone translúcida (1412, 4793, 7245, 4831, 10000)
+  // - Esguicho Limpador Parabrisa (8096)
+  // - Chuveiro (2234)
+  // - Korax R6 Multiuso (9221, 9118, 9120, 9027, 9119)
+  // - Jardins (2510, 3954, 2554, 8379, 2497, 2862)
+  // - Sucção Laranja PVC (2891) e Chata Flat Laranja (1335)
+  // - Lisa Irrigação (813)
+  const atoxicaNegativeCases = [
+    // Palavras não-atóxica
+    { sku: 'neg-toxica', name: 'SUBSTANCIA TOXICA INDUSTRIAL', brand: '' },
+    { sku: 'neg-intox', name: 'FILTRO ANTI INTOXICACAO', brand: '' },
+    // Sucções coloridas sem "atóxica"
+    {
+      sku: '2383',
+      name: 'MANGUEIRA SUCÇAO 2" ISLP LARANJA',
+      brand: 'IBIRÁ',
+      expectedOtherImg: SUCCAO_LARANJA_IMAGE,
+    },
+    { sku: '2891', name: 'MANGUEIRA FLEXIVEL 2" PVC LARANJA / TRANSPARENTE', brand: '' },
+    { sku: '1335', name: 'MANGUEIRA CHATA FLAT 2" LARANJA', brand: '' },
+    {
+      sku: 'succ-cinza',
+      name: 'MANGUEIRA VACUO AR 1" IVCL CINZA',
+      brand: 'IBIRÁ',
+      expectedOtherImg: VACUO_AR_CINZA_IMAGE,
+    },
+    {
+      sku: 'succ-azul',
+      name: 'MANGUEIRA SUCÇAO 2" AZUL',
+      brand: 'KANAFLEX',
+      expectedOtherImg: SUCCAO_AZUL_IMAGE,
+    },
+    {
+      sku: 'succ-preta',
+      name: 'MANGUEIRA VACUO AR 1.1/2" KEL-SP PRETA',
+      brand: 'KANAFLEX',
+      expectedOtherImg: VACUO_AR_PRETA_IMAGE,
+    },
+    // Silicone Translúcida
+    {
+      sku: '1412',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 6 X 4 MM',
+      brand: '',
+      expectedOtherImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    {
+      sku: '4793',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 8 X 5 MM',
+      brand: '',
+      expectedOtherImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    {
+      sku: '7245',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 10 X 6 MM',
+      brand: '',
+      expectedOtherImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    {
+      sku: '4831',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 12 X 8 MM',
+      brand: '',
+      expectedOtherImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    {
+      sku: '10000',
+      name: 'MANGUEIRA DE SILICONE TRANSLUCIDA 14 X 10 MM',
+      brand: '',
+      expectedOtherImg: SILICONE_TRANSLUCIDA_IMAGE,
+    },
+    // Esguicho Limpador Parabrisa
+    {
+      sku: '8096',
+      name: 'MANGUEIRA ESGUICHO LIMPADOR PARABRISA - SILICONADA',
+      brand: '',
+      expectedOtherImg: LIMPADOR_PARABRISA_IMAGE,
+    },
+    // Chuveiro
+    {
+      sku: '2234',
+      name: 'MANGUEIRA CHUVEIRO 5/16" X 1,3MM PVC BRANCA',
+      brand: '',
+      expectedOtherImg: CHUVEIRO_IMAGE,
+    },
+    // Korax R6 Multiuso
+    {
+      sku: '9221',
+      name: 'MANGUEIRA R6 1/4" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedOtherImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
+    {
+      sku: '9118',
+      name: 'MANGUEIRA R6 5/16" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedOtherImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
+    {
+      sku: '9120',
+      name: 'MANGUEIRA R6 3/8" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedOtherImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
+    {
+      sku: '9027',
+      name: 'MANGUEIRA R6 1/2" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedOtherImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
+    {
+      sku: '9119',
+      name: 'MANGUEIRA R6 5/8" MULTIUSO - OLEO/SOLVENTE/AR/AGUA',
+      brand: 'KORAX',
+      expectedOtherImg: KORAX_R6_MULTIUSO_IMAGE,
+    },
+    // Jardins
+    {
+      sku: '2510',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO/ PRETO',
+      brand: 'SUNFLEX',
+      expectedOtherImg: JARDIM_VINHO_PRETO_IMAGE,
+    },
+    {
+      sku: '3954',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 VINHO/PRETO',
+      brand: 'SUNFLEX',
+      expectedOtherImg: JARDIM_VINHO_PRETO_IMAGE,
+    },
+    {
+      sku: '2554',
+      name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+      expectedOtherImg: JARDIM_AZUL_PRETO_IMAGE,
+    },
+    {
+      sku: '8379',
+      name: 'MANGUEIRA JARDIM 3/4" X 2.5MM PT200 AZUL/PRETO',
+      brand: 'SUNFLEX',
+      expectedOtherImg: JARDIM_AZUL_PRETO_IMAGE,
+    },
+    {
+      sku: '2497',
+      name: 'MANGUEIRA JARDIM 1/2" X 3,0MM PT300 AZUL LISA',
+      brand: 'SUNFLEX',
+      expectedOtherImg: JARDIM_AZUL_LISA_IMAGE,
+    },
+    { sku: '2862', name: 'MANGUEIRA JARDIM 1/2" X 2.5MM PT200 VINHO TRICOTADA', brand: 'SUNFLEX' },
+    // Lisa Irrigação
+    {
+      sku: '813',
+      name: 'MANGUEIRA LISA IRRIGAÇÃO 2" PAREDE 3,0 MM',
+      brand: '',
+      expectedOtherImg: LISA_IRRIGACAO_IMAGE,
+    },
+  ]
+
+  for (const item of atoxicaNegativeCases) {
+    if (isToxica(item)) {
+      throw new Error(`Item negativo ${item.sku} (${item.name}) NÃO deveria casar com isToxica`)
+    }
+    const detectedImg = getProductImage(item)
+    if (detectedImg === SUCCAO_ATOXICA_IMAGE) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) NÃO deve retornar SUCCAO_ATOXICA_IMAGE`,
+      )
+    }
+    if (item.expectedOtherImg && detectedImg !== item.expectedOtherImg) {
+      throw new Error(
+        `Item negativo ${item.sku} (${item.name}) deveria manter ${item.expectedOtherImg}, obteve ${detectedImg}`,
       )
     }
   }
